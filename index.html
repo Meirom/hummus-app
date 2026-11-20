@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>חומוס על פסטה 🦐🦐 — מטורף</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="auth-modal" class="login-overlay">
+      <div class="login-card">
+        <span class="badge">HUMMUS ONLINE · כיתה יא</span>
+        <h2>חומוס על פסטה 🦐</h2>
+        <p>כניסה עם מייל וסיסמה (חשבון חדש נוצר אוטומטית בכניסה ראשונה)</p>
+        <div class="auth-form">
+          <input id="auth-name" type="text" placeholder="השם שלך (מירום / ריטה / אור / שרה...)" />
+          <input id="auth-email" type="email" placeholder="מייל (name@example.com)" />
+          <input id="auth-pass" type="password" placeholder="סיסמה (לפחות 6 תווים)" />
+          <button id="auth-submit" class="solid-pill">כניסה למטורף 🔥</button>
+          <div id="auth-error" class="error-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- פופאפ הזמנה לדו-קרב -->
+    <div id="invite-toast" class="invite-toast hidden">
+      <p id="invite-text">הזמנה לדו-קרב!</p>
+      <div class="invite-actions">
+        <button id="accept-invite" class="solid-pill">יאללה ⚔️</button>
+        <button id="decline-invite" class="glass-pill">לא עכשיו</button>
+      </div>
+    </div>
+
+    <!-- פופאפ קופץ בכל פעם שנשלחת בקשה/שיפור חדש -->
+    <div id="request-toast" class="request-toast hidden">
+      <div class="toast-top">
+        <strong>💡 בקשה / שיפור חדש!</strong>
+        <button id="close-request-toast" class="toast-x" aria-label="סגור">✕</button>
+      </div>
+      <p id="request-toast-text"></p>
+      <button id="open-requests-tab" class="solid-pill">לצפייה בתיבה 📋</button>
+    </div>
+
+    <nav class="top-nav">
+      <div class="brand">חומוס על פסטה 🦐🦐</div>
+      <div class="nav-tabs">
+        <button class="tab-btn active" data-tab="lobby">לובי ואונליין</button>
+        <button class="tab-btn" data-tab="duel">דו-קרב ⚔️</button>
+        <button class="tab-btn" data-tab="games">משחקים וטריוויה</button>
+        <button class="tab-btn" data-tab="board">קיר הצ'אט 💬</button>
+        <button class="tab-btn" data-tab="requests">בקשות ושיפורים 💡</button>
+        <button class="tab-btn" data-tab="scores">שיאים 🏆</button>
+      </div>
+      <div class="nav-right">
+        <span id="active-user-badge" class="user-pill">לא מחוברת</span>
+        <button id="psycho-toggle" class="glass-pill">מצב מלבלב ⚡</button>
+        <button id="logout-btn" class="glass-pill">התנתק</button>
+      </div>
+    </nav>
+
+    <!-- מסך 1: לובי ואונליין -->
+    <main id="tab-lobby" class="page-view active">
+      <section class="hero-card">
+        <div class="hero-text">
+          <span class="badge">שלקלק · ירושלים</span>
+          <h1>חומוס על פסטה 🦐🦐</h1>
+          <p id="hero-quote">"בגילגול הבא עדיף להיות שרימפס" — שלקלק.</p>
+          <button id="quote-btn" class="solid-pill">שלוף יציאה חדשה 💬</button>
+        </div>
+        <div class="hero-visual">
+          <div class="spud-body">
+            <span>🦐</span>
+            <small>שלקלק</small>
+          </div>
+        </div>
+        <div class="stat-box">
+          <span id="my-saved-score" class="stat-num">0</span>
+          <span>הנקודות שלי</span>
+        </div>
+      </section>
+
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>מחוברים עכשיו 🟢</h2>
+          <span>בחרי חברה והזמיני לקרב בלייב</span>
+        </div>
+        <div id="online-list" class="online-list">טוען מחוברים...</div>
+      </section>
+    </main>
+
+    <!-- מסך 2: זירת דו-קרב -->
+    <main id="tab-duel" class="page-view">
+      <section class="panel-card duel-card">
+        <h2>זירת הדו-קרב ⚔️</h2>
+        <div class="duel-scoreboard">
+          <strong id="duel-p1">שחקנית 1</strong>
+          <span class="vs-badge">VS</span>
+          <strong id="duel-p2">שחקנית 2</strong>
+        </div>
+        <div class="tug-track">
+          <div id="tug-fill" class="tug-fill" style="width: 50%"></div>
+          <div id="tug-marker" class="tug-marker" style="left: 50%">🦐</div>
+        </div>
+        <button id="live-pull-btn" class="tap-pad" disabled>משכי את השרימפס אלייך! 🦐🔥</button>
+        <div id="duel-status" class="feedback-line">הזמיני מישהי מהלובי כדי להתחיל קרב.</div>
+      </section>
+    </main>
+
+    <!-- מסך 3: משחקים וטריוויה -->
+    <main id="tab-games" class="page-view">
+      <div class="two-col">
+        <section class="panel-card">
+          <h2>מי אמר את זה?! 💬</h2>
+          <div id="quiz-box"></div>
+        </section>
+
+        <section class="panel-card">
+          <h2>תפוס את החומוס 🍲</h2>
+          <p class="game-meta">זמן: <b id="timer">12</b>s | ניקוד סיבוב: <b id="score">0</b> | קומבו: <b id="combo">x1</b></p>
+          <button id="start-game" class="solid-pill">התחל סיבוב מטורף</button>
+          <div id="arena" class="arena-box">לחצי התחל סיבוב ותאספי נקודות לטבלה 🔥</div>
+        </section>
+      </div>
+    </main>
+
+    <!-- מסך 4: קיר הצ'אט החי -->
+    <main id="tab-board" class="page-view">
+      <section class="panel-card">
+        <h2>קיר היציאות של החבורה 💬</h2>
+        <p style="color:#6E5847; margin-bottom:14px">זרקי לפה משפטים או בדיחות מהצ'אט — זה נשמר בענן לכולן!</p>
+        <div class="board-form">
+          <input id="board-input" type="text" maxlength="140" placeholder="כתבי יציאה מהצ'אט..." />
+          <button id="board-send" class="solid-pill" style="margin-top:0">שגר לקיר 🚀</button>
+        </div>
+        <div id="board-list" class="board-list">טוען יציאות...</div>
+      </section>
+    </main>
+
+    <!-- מסך 5: בקשות ושיפורים -->
+    <main id="tab-requests" class="page-view">
+      <section class="panel-card">
+        <h2>בקשות, רעיונות ושיפורים 💡</h2>
+        <p style="color:#6E5847; margin-bottom:14px">כל בקשה או רעיון שנשלח מופיע כאן ויקפיץ התראה חיה כשמישהי שולחת!</p>
+        <div class="board-form">
+          <input id="request-input" type="text" maxlength="180" placeholder="מה להוסיף או לשפר באתר? (משחק, בדיחה, פיצ'ר...)" />
+          <button id="request-send" class="solid-pill" style="margin-top:0">שלחי בקשה 💡</button>
+        </div>
+        <div id="requests-list" class="requests-list">טוען בקשות...</div>
+      </section>
+    </main>
+
+    <!-- מסך 6: שיאים -->
+    <main id="tab-scores" class="page-view">
+      <section class="panel-card">
+        <h2>טבלת השיאים 🏆</h2>
+        <div id="leaderboard" class="leaderboard-box"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./script.js"></script>
+  </body>
+</html>
