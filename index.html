@@ -43,6 +43,15 @@
       <button id="open-requests-tab" class="solid-pill">לצפייה בתיבה 📋</button>
     </div>
 
+    <!-- פופאפ חי: מישהי התחברה / קריאה להתחבר -->
+    <div id="live-alert-toast" class="live-alert-toast hidden">
+      <div class="toast-top">
+        <strong id="live-alert-title">🟢 פעילות חיה!</strong>
+        <button id="close-live-alert" class="toast-x" aria-label="סגור">✕</button>
+      </div>
+      <p id="live-alert-text"></p>
+    </div>
+
     <nav class="top-nav">
       <div class="brand">חומוס על פסטה 🦐🦐</div>
       <div class="nav-tabs">
@@ -55,7 +64,8 @@
       </div>
       <div class="nav-right">
         <span id="active-user-badge" class="user-pill">לא מחוברת</span>
-        <button id="psycho-toggle" class="glass-pill">מצב מלבלב ⚡</button>
+        <button id="blossom-toggle" class="glass-pill">מלבלב 💖</button>
+        <button id="psycho-toggle" class="glass-pill">מצב לילה 🌙</button>
         <button id="logout-btn" class="glass-pill">התנתק</button>
       </div>
     </nav>
@@ -67,7 +77,10 @@
           <span class="badge">שלקלק · ירושלים</span>
           <h1>חומוס על פסטה 🦐🦐</h1>
           <p id="hero-quote">"בגילגול הבא עדיף להיות שרימפס" — שלקלק.</p>
-          <button id="quote-btn" class="solid-pill">שלוף יציאה חדשה 💬</button>
+          <div class="hero-actions">
+            <button id="quote-btn" class="solid-pill">שלוף יציאה חדשה 💬</button>
+            <button id="ping-all-btn" class="solid-pill ping-btn">תתחברו עכשיו!! 🚨</button>
+          </div>
         </div>
         <div class="hero-visual">
           <div class="spud-body">
@@ -75,18 +88,24 @@
             <small>שלקלק</small>
           </div>
         </div>
-        <div class="stat-box">
-          <span id="my-saved-score" class="stat-num">0</span>
-          <span>הנקודות שלי</span>
+        <div class="stats-stack">
+          <div class="stat-box">
+            <span id="my-saved-score" class="stat-num">0</span>
+            <span>הנקודות שלי</span>
+          </div>
+          <div class="stat-box streak-box">
+            <span id="my-streak-num" class="stat-num">🔥 1</span>
+            <span>רצף יומי</span>
+          </div>
         </div>
       </section>
 
       <section class="panel-card">
         <div class="panel-head">
-          <h2>מחוברים עכשיו 🟢</h2>
-          <span>בחרי חברה והזמיני לקרב בלייב</span>
+          <h2>סטטוס החבורה 🟢</h2>
+          <span>מי אונליין עכשיו ומתי נראתה לאחרונה</span>
         </div>
-        <div id="online-list" class="online-list">טוען מחוברים...</div>
+        <div id="online-list" class="online-list">טוען סטטוס חבורה...</div>
       </section>
     </main>
 
