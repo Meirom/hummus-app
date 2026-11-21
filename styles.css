@@ -618,25 +618,6 @@ body.psycho .top-nav {
   margin: 10px 0;
 }
 
-.coming-soon-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.soon-card {
-  background: var(--surface-soft);
-  border-radius: 14px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.soon-card small {
-  color: var(--muted);
-}
-
 .duel-scoreboard {
   display: flex;
   justify-content: space-between;
@@ -834,11 +815,7 @@ body.psycho .top-nav {
   cursor: pointer;
 }
 
-@media (max-width: 720px) {
-  .lobby-top-grid,
-  .avatar-studio {
-    grid-template-columns: 1fr;
-    /* רביעיות החבורה */
+/* רביעיות החבורה */
 .q-banner {
   background: var(--surface-soft);
   border-radius: 14px;
@@ -965,5 +942,10 @@ body.psycho .top-nav {
   font-size: 0.78rem;
   font-weight: 800;
 }
+
+@media (max-width: 720px) {
+  .lobby-top-grid,
+  .avatar-studio {
+    grid-template-columns: 1fr;
   }
 }
