@@ -556,6 +556,341 @@ function renderPresenceList() {
   });
 }
 
+// ==========================================
+// טורניר איקס-עיגול נוק-אאוט לייב (משעמם בשיעור)
+// ==========================================
+const TTT_WIN_LINES = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
+];
+
+function checkTttWinner(board) {
+  for (const [a, b, c] of TTT_WIN_LINES) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return board[a];
+    }
+  }
+  return null;
+}
+
+function buildRoundMatches(playersArr, roundNum) {
+  const shuffled = [...playersArr].sort(() => Math.random() - 0.5);
+  const matches = {};
+  let idx = 0;
+  for (let i = 0; i < shuffled.length; i += 2) {
+    const p1 = shuffled[i];
+    const p2 = shuffled[i + 1];
+    const mId = `r${roundNum}_m${idx++}`;
+    if (!p2) {
+      matches[mId] = {
+        id: mId,
+        p1,
+        p2: null,
+        board: Array(9).fill(''),
+        p1Moves: [],
+        p2Moves: [],
+        turn: 'p1',
+        winnerUid: p1.uid,
+        winnerName: p1.name,
+        status: 'bye',
+      };
+    } else {
+      matches[mId] = {
+        id: mId,
+        p1,
+        p2,
+        board: Array(9).fill(''),
+        p1Moves: [],
+        p2Moves: [],
+        turn: 'p1',
+        winnerUid: null,
+        winnerName: null,
+        status: 'playing',
+      };
+    }
+  }
+  return matches;
+}
+
+let cachedTttTourney = null;
+let rewardedChampionKey = null;
+
+function renderTttTournament() {
+  const root = document.getElementById('ttt-tournament-root');
+  if (!root || !me) return;
+
+  const t = cachedTttTourney;
+
+  // שלב 1: לובי הרשמה לטורניר
+  if (!t || t.status === 'lobby') {
+    const playersMap = t?.players || {};
+    const playersList = Object.values(playersMap);
+    const amIIn = Boolean(playersMap[me.uid]);
+
+    root.innerHTML = `
+      <p style="margin-bottom:10px; font-weight:700;">מי שבכיתה ומשעמם לה — נכנסת לכאן! כשכולן בפנים לוחצים על התחלת הסיבוב הראשון 👇</p>
+      <div class="ttt-lobby-players">
+        ${
+          playersList.length === 0
+            ? '<span style="color:var(--muted)">עדיין אף אחת לא נכנסה ללובי הטורניר...</span>'
+            : playersList
+                .map(
+                  (p) =>
+                    `<span class="ttt-player-chip">${renderAvatarHtml(
+                      p.avatar,
+                      'xs'
+                    )} ${p.name}</span>`
+                )
+                .join('')
+        }
+      </div>
+      <div class="hero-actions">
+        ${
+          amIIn
+            ? `<button id="ttt-leave-btn" class="glass-pill">צאי מהלובי</button>`
+            : `<button id="ttt-join-btn" class="solid-pill ping-btn">נכנסת לטורניר 🙋‍♀️</button>`
+        }
+        <button id="ttt-start-btn" class="solid-pill" ${
+          playersList.length < 2 ? 'disabled style="opacity:0.45"' : ''
+        }>התחילו סיבוב (${playersList.length} שחקניות) 🚀</button>
+      </div>
+    `;
+
+    document.getElementById('ttt-join-btn')?.addEventListener('click', async () => {
+      await set(ref(db, `tttTournament/players/${me.uid}`), {
+        uid: me.uid,
+        name: me.name,
+        avatar: me.avatar || DEFAULT_AVATAR,
+      });
+      if (!t) {
+        await update(ref(db, 'tttTournament'), { status: 'lobby' });
+      }
+    });
+
+    document.getElementById('ttt-leave-btn')?.addEventListener('click', async () => {
+      await remove(ref(db, `tttTournament/players/${me.uid}`));
+    });
+
+    document.getElementById('ttt-start-btn')?.addEventListener('click', async () => {
+      if (playersList.length < 2) return;
+      const matches = buildRoundMatches(playersList, 1);
+      await set(ref(db, 'tttTournament'), {
+        status: 'playing',
+        round: 1,
+        players: playersMap,
+        matches,
+        champion: null,
+        tourneyId: Date.now(),
+      });
+    });
+    return;
+  }
+
+  // שלב 3: הוכרזה אלופת השיעור!
+  if (t.status === 'finished' && t.champion) {
+    const champKey = `${t.tourneyId}_${t.champion.uid}`;
+    if (t.champion.uid === me.uid && rewardedChampionKey !== champKey) {
+      rewardedChampionKey = champKey;
+      addSavedPoints(15);
+    }
+
+    root.innerHTML = `
+      <div class="ttt-champ-box">
+        <div style="font-size:2.6rem;">👑🏆👑</div>
+        <h3 style="margin:6px 0;">אלופת השיעור: ${t.champion.name}!</h3>
+        <p style="color:var(--muted); font-weight:700;">ניצחה את כל המנצחות וגרפה +15 נקודות לטבלת השיאים 🔥</p>
+        <button id="ttt-reset-btn" class="solid-pill" style="margin-top:14px;">טורניר חדש 🔁</button>
+      </div>
+    `;
+
+    document.getElementById('ttt-reset-btn')?.addEventListener('click', async () => {
+      await set(ref(db, 'tttTournament'), { status: 'lobby', players: {} });
+    });
+    return;
+  }
+
+  // שלב 2: סיבוב פעיל — לוחות במקביל!
+  const matchesList = Object.values(t.matches || {});
+  const roundNum = t.round || 1;
+  const myMatch = matchesList.find(
+    (m) => m.p1?.uid === me.uid || m.p2?.uid === me.uid
+  );
+  const allDone = matchesList.length > 0 && matchesList.every((m) => m.status !== 'playing');
+
+  let myArenaHtml = '';
+  if (myMatch) {
+    if (myMatch.status === 'bye') {
+      myArenaHtml = `
+        <div class="ttt-my-arena">
+          <strong>🍀 קיבלת עלייה אוטומטית לשלב הבא!</strong>
+          <p style="font-size:0.86rem; color:var(--muted); margin-top:4px;">מחכים ששאר המשחקים בסיבוב ${roundNum} יסתיימו...</p>
+        </div>`;
+    } else {
+      const amIP1 = myMatch.p1.uid === me.uid;
+      const myMark = amIP1 ? 'p1' : 'p2';
+      const p1Emoji = myMatch.p1.avatar?.base || '❌';
+      const p2Emoji = myMatch.p2.avatar?.base === p1Emoji ? '⭕' : (myMatch.p2.avatar?.base || '⭕');
+      const board = Array.isArray(myMatch.board) ? myMatch.board : Array(9).fill('');
+      const p1Moves = myMatch.p1Moves || [];
+      const p2Moves = myMatch.p2Moves || [];
+      const isMyTurn = myMatch.status === 'playing' && myMatch.turn === myMark;
+
+      // סימן שעומד להיעלם (איקס-עיגול אינסופי — מקסימום 3 לכל אחת)
+      const fadingIndex =
+        myMatch.status === 'playing'
+          ? myMatch.turn === 'p1' && p1Moves.length >= 3
+            ? p1Moves[0]
+            : myMatch.turn === 'p2' && p2Moves.length >= 3
+            ? p2Moves[0]
+            : -1
+          : -1;
+
+      const bannerText =
+        myMatch.status === 'done'
+          ? `🏆 ${myMatch.winnerName} ניצחה ועלתה לשלב הבא!`
+          : isMyTurn
+          ? '🔥 תורך! שימי סימן בלוח'
+          : `⏳ תור של ${amIP1 ? myMatch.p2.name : myMatch.p1.name}...`;
+
+      myArenaHtml = `
+        <div class="ttt-my-arena">
+          <div class="ttt-vs-bar">
+            <span>${p1Emoji} ${myMatch.p1.name}</span>
+            <span class="vs-badge">VS</span>
+            <span>${p2Emoji} ${myMatch.p2.name}</span>
+          </div>
+          <div class="ttt-turn-banner ${isMyTurn ? 'my-turn' : ''}">${bannerText}</div>
+          <div class="ttt-board">
+            ${board
+              .map((cell, idx) => {
+                const symbol = cell === 'p1' ? p1Emoji : cell === 'p2' ? p2Emoji : '';
+                const isFading = idx === fadingIndex;
+                const disabled = !isMyTurn || Boolean(cell);
+                return `<button class="ttt-cell ${isFading ? 'fading' : ''}" data-idx="${idx}" ${
+                  disabled ? 'disabled' : ''
+                }>${symbol}</button>`;
+              })
+              .join('')}
+          </div>
+          <small style="color:var(--muted);">⚡ מצב אינסופי: לכל אחת יש עד 3 סימנים — הרביעי מעלים את הישן כדי שלא יהיה תיקו!</small>
+        </div>
+      `;
+    }
+  }
+
+  const otherMatchesHtml = matchesList
+    .map((m) => {
+      if (m.status === 'bye') {
+        return `<div class="ttt-match-card done"><b>🍀 ${m.p1.name}</b><small>עלתה אוטומטית לשלב הבא</small></div>`;
+      }
+      const statusLine =
+        m.status === 'done'
+          ? `✅ מנצחת: <b>${m.winnerName}</b>`
+          : `⚔️ משחקות עכשיו...`;
+      return `
+        <div class="ttt-match-card ${m.status === 'done' ? 'done' : ''}">
+          <div><b>${m.p1.name}</b> נגד <b>${m.p2.name}</b></div>
+          <small>${statusLine}</small>
+        </div>`;
+    })
+    .join('');
+
+  root.innerHTML = `
+    <div class="ttt-round-header">
+      <div>
+        <strong>סיבוב ${roundNum} בביצוע 🔥</strong>
+        <span style="display:block; font-size:0.82rem; color:var(--muted);">
+          ${allDone ? 'כל הלוחות סיימו! אפשר להמשיך לשלב המנצחות' : 'משחקות במקביל — כל מנצחת עולה אוטומטית'}
+        </span>
+      </div>
+      <div class="hero-actions">
+        ${
+          allDone
+            ? `<button id="ttt-next-round-btn" class="solid-pill ping-btn">לשלב הבא / הכרזת אלופה 🏆</button>`
+            : ''
+        }
+        <button id="ttt-abort-btn" class="mini-btn">אפסי טורניר</button>
+      </div>
+    </div>
+    ${myArenaHtml}
+    <div>
+      <strong style="font-size:0.9rem;">כל המשחקים בסיבוב ${roundNum}:</strong>
+      <div class="ttt-matches-grid">${otherMatchesHtml}</div>
+    </div>
+  `;
+
+  // לחיצה על משבצת בלוח שלי
+  root.querySelectorAll('.ttt-cell').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!myMatch || myMatch.status !== 'playing') return;
+      const idx = Number(btn.dataset.idx);
+      const amIP1 = myMatch.p1.uid === me.uid;
+      const myMark = amIP1 ? 'p1' : 'p2';
+      if (myMatch.turn !== myMark) return;
+
+      const board = Array.isArray(myMatch.board) ? [...myMatch.board] : Array(9).fill('');
+      if (board[idx]) return;
+
+      const movesKey = amIP1 ? 'p1Moves' : 'p2Moves';
+      const moves = Array.isArray(myMatch[movesKey]) ? [...myMatch[movesKey]] : [];
+
+      if (moves.length >= 3) {
+        const oldestIdx = moves.shift();
+        board[oldestIdx] = '';
+      }
+      moves.push(idx);
+      board[idx] = myMark;
+
+      const winMark = checkTttWinner(board);
+      const updates = {
+        board,
+        [movesKey]: moves,
+        turn: amIP1 ? 'p2' : 'p1',
+      };
+
+      if (winMark) {
+        const winnerObj = winMark === 'p1' ? myMatch.p1 : myMatch.p2;
+        updates.status = 'done';
+        updates.winnerUid = winnerObj.uid;
+        updates.winnerName = winnerObj.name;
+      }
+
+      await update(ref(db, `tttTournament/matches/${myMatch.id}`), updates);
+    });
+  });
+
+  // מעבר לסיבוב המנצחות הבא או הכרזת אלופה
+  document.getElementById('ttt-next-round-btn')?.addEventListener('click', async () => {
+    const winners = matchesList
+      .map((m) => (m.winnerUid === m.p1?.uid ? m.p1 : m.p2))
+      .filter(Boolean);
+
+    if (winners.length <= 1) {
+      await update(ref(db, 'tttTournament'), {
+        status: 'finished',
+        champion: winners[0] || null,
+      });
+    } else {
+      const nextRound = roundNum + 1;
+      const nextMatches = buildRoundMatches(winners, nextRound);
+      await update(ref(db, 'tttTournament'), {
+        round: nextRound,
+        matches: nextMatches,
+      });
+    }
+  });
+
+  document.getElementById('ttt-abort-btn')?.addEventListener('click', async () => {
+    await set(ref(db, 'tttTournament'), { status: 'lobby', players: {} });
+  });
+}
+
 // מאזינים חיים אחרי התחברות
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -654,6 +989,12 @@ onAuthStateChanged(auth, async (user) => {
     byUid: me.uid,
     byName: me.name,
     ts: Date.now(),
+  });
+
+  // האזנה לטורניר איקס-עיגול בלייב
+  onValue(ref(db, 'tttTournament'), (snap) => {
+    cachedTttTourney = snap.val();
+    renderTttTournament();
   });
 
   onValue(ref(db, `users/${me.uid}`), (snap) => {
