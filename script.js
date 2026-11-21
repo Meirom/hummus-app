@@ -20,6 +20,11 @@ import {
   increment,
   remove,
 } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js';
+import {
+  getMessaging,
+  getToken,
+  onMessage,
+} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyD9vL8NaVCfEa9uTs45MmyT4ruw_YvknXA',
@@ -31,9 +36,18 @@ const firebaseConfig = {
   appId: '1:348557255133:web:524bf31a2fc6cea2329634',
 };
 
+const VAPID_KEY =
+  'BGkDNdGkNT7-AYbxGXAKqPObHl-vl9Y0n-MZXnnbQQRtcgS1XGXKIa5uo-W_s8a3F5WpF9Rk5Heg4PjRd5GGt3o';
+const PUSH_SERVER_URL = 'https://hummus-server.onrender.com/send-push';
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+
+let messaging = null;
+try {
+  messaging = getMessaging(app);
+} catch {}
 
 // אפשרויות עיצוב אווטר
 const AVATAR_BASES = ['🦐', '🐱', '🐸', '🧸', '🐰', '🦊', '👽', '🤖', '🦄', '🐵'];
@@ -214,21 +228,54 @@ function playPopSound() {
   } catch {}
 }
 
-// התראות במכשיר (מחשב / טלפון)
+// Service Worker + רישום FCM Token לשרת
 let swRegistration = null;
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then((reg) => {
-    swRegistration = reg;
-  }).catch(() => {});
+  navigator.serviceWorker
+    .register('./sw.js')
+    .then((reg) => {
+      swRegistration = reg;
+    })
+    .catch(() => {});
+}
+
+async function registerPushToken() {
+  if (!me || !messaging || !('Notification' in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return;
+
+  try {
+    const reg = swRegistration || (await navigator.serviceWorker.ready);
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: reg,
+    });
+    if (token) {
+      await update(ref(db, `users/${me.uid}`), { fcmToken: token });
+    }
+  } catch {}
+}
+
+if (messaging) {
+  onMessage(messaging, (payload) => {
+    const title = payload?.notification?.title || 'חומוס על פסטה 🦐';
+    const body = payload?.notification?.body || 'יש לך צפצוף חדש!';
+    showLiveAlert(title, body);
+  });
+}
+
+async function triggerPushServer({ targetUid, title, body }) {
+  try {
+    await fetch(PUSH_SERVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetUid, title, body }),
+    });
+  } catch {}
 }
 
 async function showDeviceNotification(title, body) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    await Notification.requestPermission();
-  }
-  if (Notification.permission !== 'granted') return;
-
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   if (swRegistration && swRegistration.showNotification) {
     await swRegistration.showNotification(title, {
       body,
@@ -236,21 +283,24 @@ async function showDeviceNotification(title, body) {
       lang: 'he',
       vibrate: [200, 100, 200],
     });
-  } else {
-    try {
-      new Notification(title, { body, dir: 'rtl', lang: 'he' });
-    } catch {}
   }
 }
 
 document.getElementById('enable-notify-btn')?.addEventListener('click', async () => {
   if (!('Notification' in window)) {
-    showLiveAlert('התראות', 'הדפדפן לא תומך בהתראות מכשיר — ההתראות באתר ימשיכו לעבוד.');
+    showLiveAlert(
+      'התראות',
+      'הדפדפן לא תומך בהתראות מכשיר — ההתראות באתר ימשיכו לעבוד.'
+    );
     return;
   }
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
-    showLiveAlert('🔔 התראות הופעלו!', 'תקבלי התראה למכשיר כשתהיה קריאה או הזמנה חדשה.');
+    await registerPushToken();
+    showLiveAlert(
+      '🔔 התראות הופעלו!',
+      'המכשיר נרשם להתראות — עכשיו תקבלי Push גם מחוץ לאתר!'
+    );
   } else {
     showLiveAlert('התראות חסומות', 'אפשר לאפשר התראות בהגדרות הדפדפן.');
   }
@@ -327,7 +377,10 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (loginErr) {
-    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+    if (
+      loginErr.code === 'auth/user-not-found' ||
+      loginErr.code === 'auth/invalid-credential'
+    ) {
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(cred.user, { displayName: name });
@@ -402,9 +455,11 @@ document.getElementById('open-requests-tab').addEventListener('click', () => {
 
 async function sendBeep(targetUid, targetName) {
   if (!me || !targetUid) return;
-  if ('Notification' in window && Notification.permission === 'default') {
-    await Notification.requestPermission();
-  }
+  await push(ref(db, `pendingBeeps/${targetUid}`), {
+    byUid: me.uid,
+    byName: me.name,
+    ts: Date.now(),
+  });
   await push(ref(db, 'liveEvents'), {
     type: 'beep',
     targetUid,
@@ -413,7 +468,12 @@ async function sendBeep(targetUid, targetName) {
     byName: me.name,
     ts: Date.now(),
   });
-  showLiveAlert('📣 צפצפת!', `שלחת צפצוף ל-${targetName}`);
+  await triggerPushServer({
+    targetUid,
+    title: '📣 צפצוף מחומוס על פסטה!',
+    body: `${me.name} מצפצפת לך להיכנס עכשיו! 🦐`,
+  });
+  showLiveAlert('📣 צפצפת!', `נשלח צפצוף ל-${targetName}`);
 }
 
 function renderPresenceList() {
@@ -549,6 +609,30 @@ onAuthStateChanged(auth, async (user) => {
   authModal.classList.add('hidden');
   userBadge.innerHTML = `${renderAvatarHtml(myAv, 'xs')} <span>${me.name}</span>`;
   if (myStreakEl) myStreakEl.textContent = `🔥 ${newStreak}`;
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    await registerPushToken();
+  }
+
+  const pendingSnap = await get(ref(db, `pendingBeeps/${me.uid}`));
+  const pendingVal = pendingSnap.val();
+  if (pendingVal) {
+    const beepList = Object.values(pendingVal);
+    if (beepList.length > 0) {
+      const lastBeep = beepList[beepList.length - 1];
+      showLiveAlert(
+        '📣 צפצופים בזמן שלא היית!',
+        beepList.length === 1
+          ? `${lastBeep.byName} צפצפה לך וקראה לך להיכנס 🦐`
+          : `${beepList.length} צפצופים מחכים לך — האחרון מ-${lastBeep.byName} 🦐`
+      );
+      showDeviceNotification(
+        '📣 צפצוף מחומוס על פסטה!',
+        `${lastBeep.byName} צפצפה לך — היכנסי עכשיו!`
+      );
+    }
+    await remove(ref(db, `pendingBeeps/${me.uid}`));
+  }
 
   const myOnlineRef = ref(db, `online/${me.uid}`);
   await set(myOnlineRef, {
@@ -705,7 +789,8 @@ onAuthStateChanged(auth, async (user) => {
         } else if (myGuess) {
           actionHtml = `<div class="secret-meta"><span>ניחשת: <b>${myGuess}</b> · מחכים לחשיפה ⏳</span></div>`;
         } else {
-          const opts = memberNames.length > 0 ? memberNames : ['מירום', 'ריטה', 'אור', 'שרה'];
+          const opts =
+            memberNames.length > 0 ? memberNames : ['מירום', 'ריטה', 'אור', 'שרה'];
           actionHtml = `
             <div class="guess-row">
               ${opts
@@ -790,7 +875,7 @@ onAuthStateChanged(auth, async (user) => {
   });
 });
 
-onChildAdded(ref(db, 'liveEvents'), (snap) => {
+onChildAdded(ref(db, 'liveEvents'), async (snap) => {
   const ev = snap.val();
   if (!ev || !me) return;
   if ((ev.ts || 0) <= connectedAt - 1000) return;
@@ -815,14 +900,12 @@ onChildAdded(ref(db, 'liveEvents'), (snap) => {
       '📣 צפצוף מחומוס על פסטה!',
       `${ev.byName} מצפצפת לך להיכנס עכשיו!`
     );
+    await remove(ref(db, `pendingBeeps/${me.uid}`));
   }
 });
 
 document.getElementById('ping-all-btn')?.addEventListener('click', async () => {
   if (!me) return;
-  if ('Notification' in window && Notification.permission === 'default') {
-    await Notification.requestPermission();
-  }
   await push(ref(db, 'liveEvents'), {
     type: 'ping',
     byUid: me.uid,
