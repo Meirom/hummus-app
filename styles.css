@@ -68,10 +68,15 @@ body {
 .user-pill {
   background: var(--surface-soft);
   color: var(--ink);
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 0.82rem;
+  border: var(--border);
+  font-size: 0.84rem;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 }
 
 .icon-pill {
@@ -95,6 +100,142 @@ body {
 .icon-pill.active-mode {
   background: var(--accent-soft);
   border-color: var(--accent);
+}
+
+/* אווטרים */
+.avatar-circle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid rgba(15, 23, 42, 0.14);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.avatar-circle.xs {
+  width: 24px;
+  height: 24px;
+  font-size: 0.85rem;
+}
+
+.avatar-circle.xs .av-acc {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  font-size: 0.62rem;
+}
+
+.avatar-circle.sm {
+  width: 32px;
+  height: 32px;
+  font-size: 1.15rem;
+}
+
+.avatar-circle.sm .av-acc {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  font-size: 0.78rem;
+}
+
+.avatar-circle.md {
+  width: 42px;
+  height: 42px;
+  font-size: 1.45rem;
+}
+
+.avatar-circle.md .av-acc {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  font-size: 0.95rem;
+}
+
+.avatar-circle.lg {
+  width: 84px;
+  height: 84px;
+  font-size: 2.8rem;
+  box-shadow: var(--shadow);
+}
+
+.avatar-circle.lg .av-acc {
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  font-size: 1.65rem;
+}
+
+.avatar-studio {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.avatar-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-soft);
+  padding: 18px 12px;
+  border-radius: 18px;
+}
+
+.avatar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.av-group label {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.av-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.av-opt {
+  padding: 6px 11px;
+  border-radius: 11px;
+  border: var(--border);
+  background: var(--surface-soft);
+  font-family: 'Heebo', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.av-opt:hover {
+  transform: scale(1.06);
+}
+
+.av-opt.selected {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.av-color-opt {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+}
+
+.av-color-opt.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* טאבים נקיים */
@@ -276,6 +417,12 @@ body {
   gap: 10px;
 }
 
+.online-user-cell, .lb-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .online-row.is-offline {
   opacity: 0.65;
 }
@@ -290,7 +437,7 @@ body {
   font-size: 0.95rem;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .last-seen-tag {
@@ -438,6 +585,12 @@ body {
   margin: 10px 0;
 }
 
+.duel-scoreboard strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .vs-badge {
   font-weight: 900;
   font-size: 0.8rem;
@@ -568,197 +721,4 @@ body {
 }
 
 /* כניסה והתראות */
-.login-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(8px);
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
-
-.login-card {
-  background: var(--surface);
-  max-width: 390px;
-  width: 100%;
-  border-radius: 24px;
-  padding: 28px 22px;
-  text-align: center;
-  box-shadow: var(--shadow);
-}
-
-.login-card h2 {
-  font-size: 1.6rem;
-  margin: 8px 0 4px;
-}
-
-.login-card p {
-  color: var(--muted);
-  font-size: 0.88rem;
-  margin-bottom: 16px;
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.auth-form input {
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: var(--border);
-  background: var(--surface-soft);
-  font-family: 'Heebo', sans-serif;
-  font-size: 0.9rem;
-}
-
-.error-text {
-  color: var(--accent);
-  font-size: 0.82rem;
-  font-weight: 700;
-  min-height: 18px;
-}
-
-.invite-toast, .request-toast, .live-alert-toast {
-  position: fixed;
-  z-index: 95;
-  padding: 14px 18px;
-  border-radius: 18px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
-  max-width: 320px;
-  background: var(--surface);
-  border: var(--border);
-}
-
-.invite-toast {
-  bottom: 76px;
-  left: 16px;
-  background: var(--ink);
-  color: #FFFFFF;
-}
-
-.request-toast {
-  bottom: 76px;
-  right: 16px;
-}
-
-.live-alert-toast {
-  top: 66px;
-  right: 16px;
-  border-right: 4px solid var(--teal);
-}
-
-.hidden {
-  display: none !important;
-}
-
-.invite-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.toast-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.toast-x {
-  border: none;
-  background: transparent;
-  font-size: 0.95rem;
-  cursor: pointer;
-  color: inherit;
-}
-
-/* מצב מלבלב 💖 */
-body.blossom {
-  --bg: #FFF0F5;
-  --surface: #FFFFFF;
-  --surface-soft: #FFE4EE;
-  --ink: #3B0D22;
-  --muted: #884A67;
-  --accent: #FF2A85;
-  --accent-soft: #FFD6E7;
-}
-
-body.blossom .top-nav {
-  background: rgba(255, 240, 245, 0.88);
-}
-
-/* מצב לילה 🌙 */
-body.psycho {
-  --bg: #0F111A;
-  --surface: #181B28;
-  --surface-soft: #222638;
-  --ink: #F1F5F9;
-  --muted: #94A3B8;
-  --accent: #FF4D6D;
-  --accent-soft: rgba(255, 77, 109, 0.18);
-  --border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-body.psycho .top-nav {
-  background: rgba(15, 17, 26, 0.88);
-}
-
-body.psycho .tab-btn.active {
-  background: var(--accent);
-  color: #FFFFFF;
-}
-
-body.psycho .solid-pill {
-  background: var(--accent);
-}
-
-/* התאמה למסך טלפון */
-@media (max-width: 760px) {
-  .lobby-top-grid {
-    grid-template-columns: 1fr;
-  }
-  .main-tabs {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: 0;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(14px);
-    border-top: var(--border);
-    border-radius: 0;
-    gap: 6px;
-    z-index: 40;
-  }
-  body.psycho .main-tabs {
-    background: rgba(24, 27, 40, 0.94);
-  }
-  body.blossom .main-tabs {
-    background: rgba(255, 240, 245, 0.94);
-  }
-  .tab-btn {
-    flex-direction: column;
-    padding: 6px 4px;
-    font-size: 0.74rem;
-    gap: 2px;
-    border: none;
-    background: transparent;
-  }
-  .tab-btn.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    box-shadow: none;
-  }
-  .page-view {
-    margin-bottom: 90px;
-  }
-  .board-form {
-    flex-direction: column;
-  }
-}
+.login-overlay
