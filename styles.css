@@ -27,18 +27,80 @@
 }
 
 @media (max-width: 760px) {
-  .lobby-top-grid, .avatar-studio { grid-template-columns: 1fr; }
+  .top-nav {
+    padding: 10px 3.5vw;
+  }
+
+  .brand {
+    font-size: 1rem;
+  }
+
+  .user-pill {
+    padding: 4px 9px;
+    font-size: 0.78rem;
+  }
+
+  .icon-pill {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  /* שורת כפתורים נגללת הצידה כמו סטורי באינסטגרם */
   .main-tabs {
     position: sticky;
-    top: 58px;
+    top: 53px;
     z-index: 25;
+    display: flex;
     flex-wrap: nowrap;
     justify-content: flex-start;
     overflow-x: auto;
-    padding: 8px 4vw;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 3.5vw;
     background: var(--bg);
+    border-bottom: var(--border);
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
-  .main-tabs::-webkit-scrollbar { display: none; }
-  .board-form { flex-direction: column; }
+
+  .main-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    font-size: 0.84rem;
+    border-radius: 999px;
+  }
+
+  .page-view {
+    margin: 14px auto 40px;
+    padding: 0 3.5vw;
+  }
+
+  .panel-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .lobby-top-grid,
+  .two-col,
+  .avatar-studio {
+    grid-template-columns: 1fr;
+  }
+
+  .board-form {
+    flex-direction: column;
+  }
+
+  .board-form button,
+  .hero-actions button {
+    width: 100%;
+  }
+
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
 }
