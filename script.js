@@ -1062,3 +1062,15 @@ async function requestAndShowSystemNotification(title, body) {
     } catch {}
   }
 }
+document.getElementById('enable-notify-btn')?.addEventListener('click', async () => {
+  if (!('Notification' in window)) {
+    showLiveAlert('התראות', 'הדפדפן הזה לא תומך בהתראות מכשיר — ההתראות באתר ימשיכו לעבוד.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showLiveAlert('🔔 התראות הופעלו!', 'תקבלי התראה כשתהיה קריאה או הזמנה חדשה.');
+  } else {
+    showLiveAlert('התראות חסומות', 'אפשר לאפשר התראות בהגדרות הדפדפן של המכשיר.');
+  }
+});
