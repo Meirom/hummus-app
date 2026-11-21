@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap');
 
-* {
+- {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -456,6 +456,155 @@ body {
   outline-offset: 2px;
 }
 
+/* טורניר איקס-עיגול */
+.ttt-lobby-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.ttt-player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-soft);
+  border: var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.ttt-round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--surface-soft);
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.ttt-my-arena {
+  background: var(--surface-soft);
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.ttt-vs-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-weight: 800;
+}
+
+.ttt-turn-banner {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.86rem;
+  margin-bottom: 14px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.ttt-turn-banner.my-turn {
+  background: var(--teal);
+  color: #FFFFFF;
+}
+
+.ttt-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 270px;
+  margin: 0 auto 12px;
+}
+
+.ttt-cell {
+  aspect-ratio: 1;
+  border-radius: 16px;
+  border: var(--border);
+  background: var(--surface);
+  font-size: 2rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.ttt-cell:hover:not(:disabled) {
+  transform: scale(1.04);
+}
+
+.ttt-cell:disabled {
+  cursor: default;
+}
+
+.ttt-cell.fading {
+  opacity: 0.42;
+  border: 2px dashed var(--accent);
+}
+
+.ttt-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ttt-match-card {
+  background: var(--surface-soft);
+  border: var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ttt-match-card.done {
+  border-color: var(--teal);
+}
+
+.ttt-champ-box {
+  text-align: center;
+  padding: 24px 16px;
+  background: var(--accent-soft);
+  border-radius: 20px;
+  margin: 10px 0;
+}
+
+.coming-soon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.soon-card {
+  background: var(--surface-soft);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.soon-card small {
+  color: var(--muted);
+}
+
 .duel-scoreboard {
   display: flex;
   justify-content: space-between;
@@ -622,155 +771,4 @@ body {
 
 .invite-toast,
 .request-toast,
-.live-alert-toast {
-  position: fixed;
-  z-index: 95;
-  padding: 14px 18px;
-  border-radius: 18px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
-  max-width: 320px;
-  background: var(--surface);
-  border: var(--border);
-}
-
-.invite-toast {
-  bottom: 24px;
-  left: 16px;
-  background: var(--ink);
-  color: #FFFFFF;
-}
-
-.request-toast {
-  bottom: 24px;
-  right: 16px;
-}
-
-.live-alert-toast {
-  top: 66px;
-  right: 16px;
-  border-right: 4px solid var(--teal);
-}
-
-.hidden {
-  display: none !important;
-}
-
-.toast-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.toast-x {
-  border: none;
-  background: transparent;
-  font-size: 0.95rem;
-  cursor: pointer;
-  color: inherit;
-}
-
-body.blossom {
-  --bg: #FFF0F5;
-  --surface: #FFFFFF;
-  --surface-soft: #FFE4EE;
-  --ink: #3B0D22;
-  --muted: #884A67;
-  --accent: #FF2A85;
-  --accent-soft: #FFD6E7;
-}
-
-body.psycho {
-  --bg: #0F111A;
-  --surface: #181B28;
-  --surface-soft: #222638;
-  --ink: #F1F5F9;
-  --muted: #94A3B8;
-  --accent: #FF4D6D;
-  --accent-soft: rgba(255, 77, 109, 0.18);
-  --border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-body.psycho .tab-btn.active,
-body.psycho .solid-pill {
-  background: var(--accent);
-  color: #FFFFFF;
-}
-
-@media (max-width: 760px) {
-  .top-nav {
-    padding: 10px 3.5vw;
-  }
-
-  .brand {
-    font-size: 1rem;
-  }
-
-  .user-pill {
-    padding: 4px 9px;
-    font-size: 0.78rem;
-  }
-
-  .icon-pill {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-  }
-
-  .main-tabs {
-    position: sticky;
-    top: 53px;
-    z-index: 25;
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    gap: 8px;
-    margin: 0;
-    padding: 10px 3.5vw;
-    background: var(--bg);
-    border-bottom: var(--border);
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .main-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab-btn {
-    flex: 0 0 auto;
-    padding: 8px 14px;
-    font-size: 0.84rem;
-    border-radius: 999px;
-  }
-
-  .page-view {
-    margin: 14px auto 40px;
-    padding: 0 3.5vw;
-  }
-
-  .panel-card {
-    padding: 16px;
-    border-radius: 18px;
-  }
-
-  .lobby-top-grid,
-  .two-col,
-  .avatar-studio {
-    grid-template-columns: 1fr;
-  }
-
-  .board-form {
-    flex-direction: column;
-  }
-
-  .board-form button,
-  .hero-actions button {
-    width: 100%;
-  }
-
-  .choice-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.live-alert-
