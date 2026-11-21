@@ -355,16 +355,20 @@ userBadge.addEventListener('click', () => {
 
 document.getElementById('save-avatar-btn')?.addEventListener('click', async () => {
   if (!me) return;
-  await update(ref(db, `users/${me.uid}`), {
-    avatar: { ...draftAvatar },
-  });
-  await update(ref(db, `online/${me.uid}`), {
-    avatar: { ...draftAvatar },
-  });
-  const msg = document.getElementById('avatar-saved-msg');
-  if (msg) {
-    msg.textContent = 'האווטר נשמר ומוצג לכולן! ✨';
-    setTimeout(() => (msg.textContent = ''), 3000);
+  try {
+    await update(ref(db, `users/${me.uid}`), {
+      avatar: { ...draftAvatar },
+    });
+    await update(ref(db, `online/${me.uid}`), {
+      avatar: { ...draftAvatar },
+    });
+    const msg = document.getElementById('avatar-saved-msg');
+    if (msg) {
+      msg.textContent = 'האווטר נשמר ומוצג לכולן! ✨';
+      setTimeout(() => (msg.textContent = ''), 3000);
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
@@ -389,16 +393,20 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(cred.user, { displayName: name });
-        await set(ref(db, `users/${cred.user.uid}`), {
-          uid: cred.user.uid,
-          name,
-          email,
-          score: 0,
-          streak: 1,
-          lastStreakDay: getDayKey(0),
-          lastSeen: Date.now(),
-          avatar: { ...DEFAULT_AVATAR },
-        });
+        try {
+          await set(ref(db, `users/${cred.user.uid}`), {
+            uid: cred.user.uid,
+            name,
+            email,
+            score: 0,
+            streak: 1,
+            lastStreakDay: getDayKey(0),
+            lastSeen: Date.now(),
+            avatar: { ...DEFAULT_AVATAR },
+          });
+        } catch (dbErr) {
+          console.error(dbErr);
+        }
       } catch (e2) {
         authError.textContent =
           e2.code === 'auth/email-already-in-use'
@@ -413,8 +421,10 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (me) {
-    await update(ref(db, `users/${me.uid}`), { lastSeen: Date.now() });
-    await remove(ref(db, `online/${me.uid}`));
+    try {
+      await update(ref(db, `users/${me.uid}`), { lastSeen: Date.now() });
+      await remove(ref(db, `online/${me.uid}`));
+    } catch {}
   }
   await signOut(auth);
 });
@@ -423,7 +433,7 @@ function addSavedPoints(pts) {
   if (!me) return;
   update(ref(db, `users/${me.uid}`), {
     score: increment(pts),
-  });
+  }).catch((err) => console.error(err));
 }
 
 function showRequestPopup(reqData) {
@@ -460,25 +470,29 @@ document.getElementById('open-requests-tab').addEventListener('click', () => {
 
 async function sendBeep(targetUid, targetName) {
   if (!me || !targetUid) return;
-  await push(ref(db, `pendingBeeps/${targetUid}`), {
-    byUid: me.uid,
-    byName: me.name,
-    ts: Date.now(),
-  });
-  await push(ref(db, 'liveEvents'), {
-    type: 'beep',
-    targetUid,
-    targetName,
-    byUid: me.uid,
-    byName: me.name,
-    ts: Date.now(),
-  });
-  await triggerPushServer({
-    targetUid,
-    title: '📣 צפצוף מחומוס על פסטה!',
-    body: `${me.name} מצפצפת לך להיכנס עכשיו! 🦐`,
-  });
-  showLiveAlert('📣 צפצפת!', `נשלח צפצוף ל-${targetName}`);
+  try {
+    await push(ref(db, `pendingBeeps/${targetUid}`), {
+      byUid: me.uid,
+      byName: me.name,
+      ts: Date.now(),
+    });
+    await push(ref(db, 'liveEvents'), {
+      type: 'beep',
+      targetUid,
+      targetName,
+      byUid: me.uid,
+      byName: me.name,
+      ts: Date.now(),
+    });
+    await triggerPushServer({
+      targetUid,
+      title: '📣 צפצוף מחומוס על פסטה!',
+      body: `${me.name} מצפצפת לך להיכנס עכשיו! 🦐`,
+    });
+    showLiveAlert('📣 צפצפת!', `נשלח צפצוף ל-${targetName}`);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 function renderPresenceList() {
@@ -895,18 +909,30 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   connectedAt = Date.now();
-  const userRef = ref(db, `users/${user.uid}`);
-  const userSnap = await get(userRef);
-  const existing = userSnap.val();
-  const displayName =
-    existing?.name ||
-    user.displayName ||
-    authName.value.trim() ||
-    user.email.split('@')[0];
+  const fallbackName =
+    user.displayName || authName.value.trim() || user.email?.split('@')[0] || 'חברה';
 
+  // סוגרים את המודאל מיד כדי לא להיתקע על קריאות רשת
+  me = { uid: user.uid, name: fallbackName, email: user.email, avatar: { ...DEFAULT_AVATAR } };
+  authModal.classList.add('hidden');
+  userBadge.innerHTML = `${renderAvatarHtml(me.avatar, 'xs')} <span>${me.name}</span>`;
+
+  let existing = null;
+  try {
+    const userRef = ref(db, `users/${user.uid}`);
+    const userSnap = await get(userRef);
+    existing = userSnap.val();
+  } catch (err) {
+    console.error(err);
+  }
+
+  const displayName = existing?.name || fallbackName;
   const myAv = { ...DEFAULT_AVATAR, ...(existing?.avatar || {}) };
   draftAvatar = { ...myAv };
   updateAvatarPreview();
+
+  me = { uid: user.uid, name: displayName, email: user.email, avatar: myAv };
+  userBadge.innerHTML = `${renderAvatarHtml(myAv, 'xs')} <span>${me.name}</span>`;
 
   const today = getDayKey(0);
   const yesterday = getDayKey(-1);
@@ -918,72 +944,84 @@ onAuthStateChanged(auth, async (user) => {
     } else if (existing.lastStreakDay === yesterday) {
       newStreak = (existing.streak || 1) + 1;
     }
-    await update(userRef, {
-      uid: user.uid,
-      name: displayName,
-      streak: newStreak,
-      lastStreakDay: today,
-      lastSeen: Date.now(),
-      avatar: myAv,
-    });
-  } else {
-    await set(userRef, {
-      uid: user.uid,
-      name: displayName,
-      email: user.email,
-      score: 0,
-      streak: 1,
-      lastStreakDay: today,
-      lastSeen: Date.now(),
-      avatar: myAv,
-    });
   }
-
-  me = { uid: user.uid, name: displayName, email: user.email, avatar: myAv };
-  authModal.classList.add('hidden');
-  userBadge.innerHTML = `${renderAvatarHtml(myAv, 'xs')} <span>${me.name}</span>`;
   if (myStreakEl) myStreakEl.textContent = `🔥 ${newStreak}`;
+
+  try {
+    const userRef = ref(db, `users/${user.uid}`);
+    if (existing) {
+      await update(userRef, {
+        uid: user.uid,
+        name: displayName,
+        streak: newStreak,
+        lastStreakDay: today,
+        lastSeen: Date.now(),
+        avatar: myAv,
+      });
+    } else {
+      await set(userRef, {
+        uid: user.uid,
+        name: displayName,
+        email: user.email,
+        score: 0,
+        streak: 1,
+        lastStreakDay: today,
+        lastSeen: Date.now(),
+        avatar: myAv,
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
 
   if ('Notification' in window && Notification.permission === 'granted') {
     await registerPushToken();
   }
 
-  const pendingSnap = await get(ref(db, `pendingBeeps/${me.uid}`));
-  const pendingVal = pendingSnap.val();
-  if (pendingVal) {
-    const beepList = Object.values(pendingVal);
-    if (beepList.length > 0) {
-      const lastBeep = beepList[beepList.length - 1];
-      showLiveAlert(
-        '📣 צפצופים בזמן שלא היית!',
-        beepList.length === 1
-          ? `${lastBeep.byName} צפצפה לך וקראה לך להיכנס 🦐`
-          : `${beepList.length} צפצופים מחכים לך — האחרון מ-${lastBeep.byName} 🦐`
-      );
-      showDeviceNotification(
-        '📣 צפצוף מחומוס על פסטה!',
-        `${lastBeep.byName} צפצפה לך — היכנסי עכשיו!`
-      );
+  try {
+    const pendingSnap = await get(ref(db, `pendingBeeps/${me.uid}`));
+    const pendingVal = pendingSnap.val();
+    if (pendingVal) {
+      const beepList = Object.values(pendingVal);
+      if (beepList.length > 0) {
+        const lastBeep = beepList[beepList.length - 1];
+        showLiveAlert(
+          '📣 צפצופים בזמן שלא היית!',
+          beepList.length === 1
+            ? `${lastBeep.byName} צפצפה לך וקראה לך להיכנס 🦐`
+            : `${beepList.length} צפצופים מחכים לך — האחרון מ-${lastBeep.byName} 🦐`
+        );
+        showDeviceNotification(
+          '📣 צפצוף מחומוס על פסטה!',
+          `${lastBeep.byName} צפצפה לך — היכנסי עכשיו!`
+        );
+      }
+      await remove(ref(db, `pendingBeeps/${me.uid}`));
     }
-    await remove(ref(db, `pendingBeeps/${me.uid}`));
+  } catch (err) {
+    console.error(err);
   }
 
-  const myOnlineRef = ref(db, `online/${me.uid}`);
-  await set(myOnlineRef, {
-    uid: me.uid,
-    name: me.name,
-    avatar: myAv,
-    ts: Date.now(),
-  });
-  onDisconnect(myOnlineRef).remove();
-  onDisconnect(ref(db, `users/${me.uid}/lastSeen`)).set(Date.now());
+  try {
+    const myOnlineRef = ref(db, `online/${me.uid}`);
+    await set(myOnlineRef, {
+      uid: me.uid,
+      name: me.name,
+      avatar: myAv,
+      ts: Date.now(),
+    });
+    onDisconnect(myOnlineRef).remove();
+    onDisconnect(ref(db, `users/${me.uid}/lastSeen`)).set(Date.now());
 
-  await push(ref(db, 'liveEvents'), {
-    type: 'join',
-    byUid: me.uid,
-    byName: me.name,
-    ts: Date.now(),
-  });
+    await push(ref(db, 'liveEvents'), {
+      type: 'join',
+      byUid: me.uid,
+      byName: me.name,
+      ts: Date.now(),
+    });
+  } catch (err) {
+    console.error(err);
+  }
 
   onValue(ref(db, 'tttTournament'), (snap) => {
     cachedTttTourney = snap.val();
