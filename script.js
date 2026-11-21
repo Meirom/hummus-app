@@ -215,22 +215,30 @@ function playPopSound() {
 }
 
 // התראות במכשיר (מחשב / טלפון)
+let swRegistration = null;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    swRegistration = reg;
+  }).catch(() => {});
+}
+
 async function showDeviceNotification(title, body) {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
     await Notification.requestPermission();
   }
-  if (Notification.permission === 'granted') {
+  if (Notification.permission !== 'granted') return;
+
+  if (swRegistration && swRegistration.showNotification) {
+    await swRegistration.showNotification(title, {
+      body,
+      dir: 'rtl',
+      lang: 'he',
+      vibrate: [200, 100, 200],
+    });
+  } else {
     try {
-      const n = new Notification(title, {
-        body,
-        dir: 'rtl',
-        lang: 'he',
-      });
-      n.onclick = () => {
-        window.focus();
-        n.close();
-      };
+      new Notification(title, { body, dir: 'rtl', lang: 'he' });
     } catch {}
   }
 }
