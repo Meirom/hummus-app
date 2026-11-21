@@ -241,24 +241,5 @@
     </main>
 
     <script type="module" src="./script.js?v=12"></script>
-    <script type="module">
-      import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-      const auth = getAuth();
-      const notifyBtn = document.getElementById("enable-notify-btn");
-      let currentUser = null;
-
-      onAuthStateChanged(auth, (user) => {
-        currentUser = user;
-      });
-
-      notifyBtn?.addEventListener("click", () => {
-        if (!currentUser) {
-          alert("קודם צריך להתחבר לחשבון באתר 😉");
-          return;
-        }
-        window.open(`https://t.me/hummus_ping_bot?start=${currentUser.uid}`, "_blank");
-      });
-    </script>
   </body>
 </html>
