@@ -6,7 +6,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (err) {
+  console.error('Invalid FIREBASE_SERVICE_ACCOUNT JSON:', err.message);
+  process.exit(1);
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://hummus-pasta-default-rtdb.firebaseio.com"
