@@ -46,6 +46,7 @@ function switchTab(tabName) {
   pageViews.forEach((v) =>
     v.classList.toggle('active', v.id === `tab-${tabName}`)
   );
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 tabButtons.forEach((btn) => {
@@ -62,19 +63,19 @@ window.addEventListener('resize', () => {
   h = canvas.height = window.innerHeight;
 });
 
-const orbs = Array.from({ length: 16 }, () => ({
+const orbs = Array.from({ length: 14 }, () => ({
   x: Math.random() * w,
   y: Math.random() * h,
-  r: 6 + Math.random() * 13,
-  vx: (Math.random() - 0.5) * 0.55,
-  vy: (Math.random() - 0.5) * 0.55,
+  r: 6 + Math.random() * 12,
+  vx: (Math.random() - 0.5) * 0.5,
+  vy: (Math.random() - 0.5) * 0.5,
 }));
 
-const hearts = Array.from({ length: 22 }, () => ({
+const hearts = Array.from({ length: 24 }, () => ({
   x: Math.random() * w,
   y: Math.random() * h,
-  size: 14 + Math.random() * 14,
-  vy: 0.7 + Math.random() * 1.1,
+  size: 16 + Math.random() * 14,
+  vy: 0.8 + Math.random() * 1.2,
   sway: Math.random() * Math.PI * 2,
   emoji: ['💖', '💗', '💕', '🌸'][Math.floor(Math.random() * 4)],
 }));
@@ -87,7 +88,7 @@ const hearts = Array.from({ length: 22 }, () => ({
     hearts.forEach((hr) => {
       hr.y -= hr.vy;
       hr.sway += 0.03;
-      hr.x += Math.sin(hr.sway) * 0.6;
+      hr.x += Math.sin(hr.sway) * 0.65;
       if (hr.y < -30) {
         hr.y = h + 20;
         hr.x = Math.random() * w;
@@ -101,14 +102,13 @@ const hearts = Array.from({ length: 22 }, () => ({
       o.y = (o.y + o.vy + h) % h;
       ctx.beginPath();
       ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(180, 131, 82, 0.17)';
+      ctx.fillStyle = 'rgba(180, 131, 82, 0.14)';
       ctx.fill();
     });
   }
   requestAnimationFrame(loop);
 })();
 
-// צליל עדין להתראות חיות
 function playPopSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -127,7 +127,6 @@ function playPopSound() {
   } catch {}
 }
 
-// חישוב תאריך מקומי YYYY-MM-DD לרצף יומי
 function getDayKey(offsetDays = 0) {
   const d = new Date(Date.now() + offsetDays * 86400000);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
@@ -135,7 +134,6 @@ function getDayKey(offsetDays = 0) {
   ).padStart(2, '0')}`;
 }
 
-// פורמט "נראה לאחרונה"
 function formatLastSeen(ts) {
   if (!ts) return 'לא ידוע';
   const diffSec = Math.max(1, Math.floor((Date.now() - ts) / 1000));
@@ -243,7 +241,7 @@ document.getElementById('close-request-toast').addEventListener('click', () => {
 
 document.getElementById('open-requests-tab').addEventListener('click', () => {
   document.getElementById('request-toast').classList.add('hidden');
-  switchTab('requests');
+  switchTab('club');
 });
 
 function renderPresenceList() {
@@ -278,7 +276,7 @@ function renderPresenceList() {
       const streakBadge = u.streak > 1 ? ` · 🔥 ${u.streak}` : '';
       const statusText = isOnline
         ? 'מחוברת עכשיו'
-        : `נראתה לאחרונה: ${formatLastSeen(u.lastSeen || u.ts)}`;
+        : `נראתה: ${formatLastSeen(u.lastSeen || u.ts)}`;
 
       return `
       <div class="online-row ${isOnline ? 'is-online' : 'is-offline'}">
@@ -291,7 +289,7 @@ function renderPresenceList() {
         </div>
         ${
           !isMe && isOnline
-            ? `<button class="solid-pill invite-btn" data-uid="${u.uid}" data-name="${u.name}" style="margin-top:0">הזמן לקרב ⚔️</button>`
+            ? `<button class="solid-pill invite-btn" data-uid="${u.uid}" data-name="${u.name}" style="margin-top:0">דו-קרב ⚔️</button>`
             : ''
         }
       </div>`;
@@ -305,7 +303,7 @@ function renderPresenceList() {
   });
 }
 
-// אונליין + רצף יומי + הזמנות + שיאים + קיר הצ'אט + בקשות ושיפורים
+// מאזינים חיים אחרי התחברות
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     me = null;
@@ -355,7 +353,7 @@ onAuthStateChanged(auth, async (user) => {
 
   me = { uid: user.uid, name: displayName, email: user.email };
   authModal.classList.add('hidden');
-  userBadge.textContent = `מחוברת: ${me.name} 🦐`;
+  userBadge.textContent = `${me.name} 🦐`;
   myStreakEl.textContent = `🔥 ${newStreak}`;
 
   const myOnlineRef = ref(db, `online/${me.uid}`);
@@ -363,7 +361,6 @@ onAuthStateChanged(auth, async (user) => {
   onDisconnect(myOnlineRef).remove();
   onDisconnect(ref(db, `users/${me.uid}/lastSeen`)).set(Date.now());
 
-  // שידור חי לכל החבורה שמירום/מישהי התחברה עכשיו
   await push(ref(db, 'liveEvents'), {
     type: 'join',
     byUid: me.uid,
@@ -401,7 +398,7 @@ onAuthStateChanged(auth, async (user) => {
         status: 'playing',
         p2Name: me.name,
       });
-      switchTab('duel');
+      switchTab('games');
       joinMatch(inv.matchId, 'p2');
     };
 
@@ -448,6 +445,84 @@ onAuthStateChanged(auth, async (user) => {
       .join('');
   });
 
+  // משחק "מי זה?" — סודות אנונימיים של החבורה
+  onValue(ref(db, 'secrets'), (snap) => {
+    const raw = snap.val() || {};
+    const entries = Object.entries(raw)
+      .map(([id, val]) => ({ id, ...val }))
+      .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+    const secretsEl = document.getElementById('secrets-list');
+    if (entries.length === 0) {
+      secretsEl.innerHTML = '<p>אין עדיין סודות — תזרקי עובדה שלא יודעים עלייך!</p>';
+      return;
+    }
+
+    const memberNames = Array.from(
+      new Set(
+        Object.values(cachedAllUsers)
+          .map((u) => u.name)
+          .filter(Boolean)
+      )
+    );
+
+    secretsEl.innerHTML = entries
+      .map((s) => {
+        const guesses = s.guesses || {};
+        const myGuess = guesses[me.uid];
+        const isAuthor = s.authorUid === me.uid;
+        const guessCount = Object.keys(guesses).length;
+
+        let actionHtml = '';
+        if (s.revealed) {
+          actionHtml = `<div class="secret-revealed">🎭 זו הייתה <b>${s.authorName}</b>! (${guessCount} ניחשו)</div>`;
+        } else if (isAuthor) {
+          actionHtml = `
+            <div class="secret-meta">
+              <span>הסוד שלך (${guessCount} ניחושים)</span>
+              <button class="mini-btn reveal-secret" data-id="${s.id}">חשפי שזו אני 👀</button>
+            </div>`;
+        } else if (myGuess) {
+          actionHtml = `<div class="secret-meta"><span>ניחשת: <b>${myGuess}</b> · מחכים לחשיפה ⏳</span></div>`;
+        } else {
+          const opts = memberNames.length > 0 ? memberNames : ['מירום', 'ריטה', 'אור', 'שרה'];
+          actionHtml = `
+            <div class="guess-row">
+              ${opts
+                .map(
+                  (name) =>
+                    `<button class="mini-btn guess-btn" data-id="${s.id}" data-guess="${name}">${name}</button>`
+                )
+                .join('')}
+            </div>`;
+        }
+
+        return `
+        <div class="secret-item">
+          <p class="secret-text">"${s.text}"</p>
+          ${actionHtml}
+        </div>`;
+      })
+      .join('');
+
+    secretsEl.querySelectorAll('.guess-btn').forEach((b) => {
+      b.addEventListener('click', async () => {
+        await update(ref(db, `secrets/${b.dataset.id}/guesses`), {
+          [me.uid]: b.dataset.guess,
+        });
+        addSavedPoints(1);
+      });
+    });
+
+    secretsEl.querySelectorAll('.reveal-secret').forEach((b) => {
+      b.addEventListener('click', async () => {
+        await update(ref(db, `secrets/${b.dataset.id}`), {
+          revealed: true,
+        });
+      });
+    });
+  });
+
   onValue(ref(db, 'requests'), (snap) => {
     const raw = snap.val() || {};
     const entries = Object.entries(raw)
@@ -470,9 +545,9 @@ onAuthStateChanged(auth, async (user) => {
             <button class="mini-btn toggle-done" data-id="${
               r.id
             }" data-done="${Boolean(r.done)}">${
-          r.done ? 'בוצע ✅' : 'סמן כטופל'
+          r.done ? 'בוצע ✅' : 'טופל'
         }</button>
-            <button class="mini-btn del-req" data-id="${r.id}">מחק 🗑️</button>
+            <button class="mini-btn del-req" data-id="${r.id}">🗑️</button>
           </div>
         </div>`
       )
@@ -510,7 +585,6 @@ onChildAdded(ref(db, 'liveEvents'), (snap) => {
   }
 });
 
-// כפתור "תתחברו עכשיו!!"
 document.getElementById('ping-all-btn').addEventListener('click', async () => {
   if (!me) return;
   await push(ref(db, 'liveEvents'), {
@@ -521,13 +595,27 @@ document.getElementById('ping-all-btn').addEventListener('click', async () => {
   });
 });
 
-// מאזין ייעודי שמקפיץ התראה רק לבקשות חדשות שנשלחות אחרי שהדף נטען
 onChildAdded(ref(db, 'requests'), (snap) => {
   const val = snap.val();
   if (!val) return;
   if ((val.ts || 0) > connectedAt - 1000) {
     showRequestPopup(val);
   }
+});
+
+document.getElementById('secret-send').addEventListener('click', async () => {
+  const input = document.getElementById('secret-input');
+  const txt = input.value.trim();
+  if (!txt || !me) return;
+  await push(ref(db, 'secrets'), {
+    text: txt,
+    authorUid: me.uid,
+    authorName: me.name,
+    revealed: false,
+    ts: Date.now(),
+  });
+  addSavedPoints(2);
+  input.value = '';
 });
 
 document.getElementById('request-send').addEventListener('click', async () => {
@@ -572,7 +660,7 @@ async function sendChallenge(targetUid, targetName) {
     fromUid: me.uid,
     fromName: me.name,
   });
-  switchTab('duel');
+  switchTab('games');
   joinMatch(matchId, 'p1');
 }
 
@@ -611,7 +699,7 @@ function joinMatch(matchId, role) {
       }
     } else if (m.status === 'done') {
       pullBtn.disabled = true;
-      statusEl.textContent = `🏆 ${m.winner} ניצחה בדו-קרב (+10 נקודות לחשבון)!`;
+      statusEl.textContent = `🏆 ${m.winner} ניצחה בדו-קרב (+10 נקודות)!`;
     }
   });
 }
@@ -624,7 +712,7 @@ document.getElementById('live-pull-btn').addEventListener('click', () => {
   });
 });
 
-// מאגר ציטוטים מגוון
+// ציטוטים
 const chatQuotes = [
   'ריטה: "בגילגול הבא עדיף להיות שרימפס" 🦐',
   'אור: "שכחו את המזוודה באבו דאבי" 🧳',
@@ -644,29 +732,25 @@ document.getElementById('quote-btn').addEventListener('click', () => {
   document.getElementById('hero-quote').textContent = chatQuotes[idx];
 });
 
-// מצב מלבלב (לבבות עפים) + מצב לילה (נוחות לעיניים)
+// מצב מלבלב + מצב לילה
 const blossomBtn = document.getElementById('blossom-toggle');
 const psychoBtn = document.getElementById('psycho-toggle');
 
 blossomBtn.addEventListener('click', () => {
   const on = document.body.classList.toggle('blossom');
-  if (on) {
-    document.body.classList.remove('psycho');
-    psychoBtn.textContent = 'מצב לילה 🌙';
-  }
-  blossomBtn.textContent = on ? 'רגיל ☀️' : 'מלבלב 💖';
+  if (on) document.body.classList.remove('psycho');
+  blossomBtn.classList.toggle('active-mode', on);
+  psychoBtn.classList.remove('active-mode');
 });
 
 psychoBtn.addEventListener('click', () => {
   const on = document.body.classList.toggle('psycho');
-  if (on) {
-    document.body.classList.remove('blossom');
-    blossomBtn.textContent = 'מלבלב 💖';
-  }
-  psychoBtn.textContent = on ? 'רגיל ☀️' : 'מצב לילה 🌙';
+  if (on) document.body.classList.remove('blossom');
+  psychoBtn.classList.toggle('active-mode', on);
+  blossomBtn.classList.remove('active-mode');
 });
 
-// טריוויה מורחבת עם ערבוב שאלות
+// טריוויה
 const triviaPool = [
   {
     q: '"היא פשוט צועקת על כל המסדרון לשרה היי סבתאאאאא"',
@@ -737,7 +821,7 @@ function renderTrivia() {
 }
 renderTrivia();
 
-// משחק סולו עם קומבו ובונוס זהב
+// תפוס את החומוס
 const startBtn = document.getElementById('start-game');
 const arena = document.getElementById('arena');
 let score = 0,
