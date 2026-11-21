@@ -214,6 +214,40 @@ function playPopSound() {
   } catch {}
 }
 
+// התראות במכשיר (מחשב / טלפון)
+async function showDeviceNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+  if (Notification.permission === 'granted') {
+    try {
+      const n = new Notification(title, {
+        body,
+        dir: 'rtl',
+        lang: 'he',
+      });
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+    } catch {}
+  }
+}
+
+document.getElementById('enable-notify-btn')?.addEventListener('click', async () => {
+  if (!('Notification' in window)) {
+    showLiveAlert('התראות', 'הדפדפן לא תומך בהתראות מכשיר — ההתראות באתר ימשיכו לעבוד.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showLiveAlert('🔔 התראות הופעלו!', 'תקבלי התראה למכשיר כשתהיה קריאה או הזמנה חדשה.');
+  } else {
+    showLiveAlert('התראות חסומות', 'אפשר לאפשר התראות בהגדרות הדפדפן.');
+  }
+});
+
 function getDayKey(offsetDays = 0) {
   const d = new Date(Date.now() + offsetDays * 86400000);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
@@ -253,7 +287,7 @@ let cachedAllUsers = {};
 let cachedOnlineUsers = {};
 
 userBadge.addEventListener('click', () => {
-  if (me) switchTab('club');
+  if (me) switchTab('avatar');
 });
 
 document.getElementById('save-avatar-btn')?.addEventListener('click', async () => {
@@ -355,7 +389,7 @@ document.getElementById('close-request-toast').addEventListener('click', () => {
 
 document.getElementById('open-requests-tab').addEventListener('click', () => {
   document.getElementById('request-toast').classList.add('hidden');
-  switchTab('club');
+  switchTab('requests');
 });
 
 function renderPresenceList() {
@@ -513,6 +547,8 @@ onAuthStateChanged(auth, async (user) => {
 
   const myInviteRef = ref(db, `invites/${me.uid}`);
   const inviteToast = document.getElementById('invite-toast');
+  let lastNotifiedInviteId = null;
+
   onValue(myInviteRef, (snap) => {
     const inv = snap.val();
     if (!inv) {
@@ -524,13 +560,21 @@ onAuthStateChanged(auth, async (user) => {
     ).textContent = `⚔️ ${inv.fromName} מזמינה אותך לדו-קרב!`;
     inviteToast.classList.remove('hidden');
 
+    if (inv.matchId && inv.matchId !== lastNotifiedInviteId) {
+      lastNotifiedInviteId = inv.matchId;
+      showDeviceNotification(
+        '⚔️ הזמנה לדו-קרב!',
+        `${inv.fromName} מזמינה אותך לקרב בחומוס על פסטה!`
+      );
+    }
+
     document.getElementById('accept-invite').onclick = async () => {
       await remove(myInviteRef);
       await update(ref(db, `matches/${inv.matchId}`), {
         status: 'playing',
         p2Name: me.name,
       });
-      switchTab('games');
+      switchTab('duel');
       joinMatch(inv.matchId, 'p2');
     };
 
@@ -716,16 +760,23 @@ onChildAdded(ref(db, 'liveEvents'), (snap) => {
 
   if (ev.type === 'join' && ev.byUid !== me.uid) {
     showLiveAlert('🟢 חברה התחברה!', `${ev.byName} נכנסה עכשיו לאתר 🦐`);
+    showDeviceNotification('חומוס על פסטה 🦐', `${ev.byName} נכנסה עכשיו לאתר!`);
   } else if (ev.type === 'ping') {
     showLiveAlert(
       '🚨 קריאה דחופה מהלובי!',
       `${ev.byName} קוראת לכולן להתחבררר עכשיו!! 🔥`
     );
+    if (ev.byUid !== me.uid) {
+      showDeviceNotification('🚨 קריאה דחופה!', `${ev.byName} קוראת לכולן להתחבר עכשיו!`);
+    }
   }
 });
 
 document.getElementById('ping-all-btn')?.addEventListener('click', async () => {
   if (!me) return;
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
   await push(ref(db, 'liveEvents'), {
     type: 'ping',
     byUid: me.uid,
@@ -799,7 +850,7 @@ async function sendChallenge(targetUid, targetName) {
     fromUid: me.uid,
     fromName: me.name,
   });
-  switchTab('games');
+  switchTab('duel');
   joinMatch(matchId, 'p1');
 }
 
@@ -1042,35 +1093,4 @@ startBtn?.addEventListener('click', () => {
       arena.innerHTML = `<h3>נגמר! +${score} נקודות נוספו לחשבון שלך 🦐</h3>`;
     }
   }, 1000);
-});
-async function requestAndShowSystemNotification(title, body) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    await Notification.requestPermission();
-  }
-  if (Notification.permission === 'granted') {
-    try {
-      const n = new Notification(title, {
-        body,
-        dir: 'rtl',
-        lang: 'he',
-      });
-      n.onclick = () => {
-        window.focus();
-        n.close();
-      };
-    } catch {}
-  }
-}
-document.getElementById('enable-notify-btn')?.addEventListener('click', async () => {
-  if (!('Notification' in window)) {
-    showLiveAlert('התראות', 'הדפדפן הזה לא תומך בהתראות מכשיר — ההתראות באתר ימשיכו לעבוד.');
-    return;
-  }
-  const perm = await Notification.requestPermission();
-  if (perm === 'granted') {
-    showLiveAlert('🔔 התראות הופעלו!', 'תקבלי התראה כשתהיה קריאה או הזמנה חדשה.');
-  } else {
-    showLiveAlert('התראות חסומות', 'אפשר לאפשר התראות בהגדרות הדפדפן של המכשיר.');
-  }
 });
