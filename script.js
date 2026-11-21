@@ -8,7 +8,7 @@ import {
   signOut,
 } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
 import {
-  initializeDatabase,
+  getDatabase,
   ref,
   set,
   push,
@@ -43,7 +43,7 @@ const TELEGRAM_BOT_USERNAME = 'hummus_ping_bot';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = initializeDatabase(app, { experimentalForceLongPolling: true });
+const db = getDatabase(app);
 
 let messaging = null;
 try {
