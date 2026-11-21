@@ -645,7 +645,6 @@ function renderQuartets() {
 
   const q = cachedQuartets;
 
-  // שלב 1: לובי רביעיות
   if (!q || q.status === 'lobby') {
     const playersMap = q?.players || {};
     const playersList = Object.values(playersMap);
@@ -730,7 +729,6 @@ function renderQuartets() {
     return;
   }
 
-  // שלב 2: סיום משחק
   if (q.status === 'finished') {
     const playersList = Object.values(q.players || {});
     const ranked = playersList
@@ -764,7 +762,6 @@ function renderQuartets() {
     return;
   }
 
-  // שלב 3: משחק פעיל
   const turnOrder = q.turnOrder || [];
   const currentTurnUid = turnOrder[q.turnIdx % turnOrder.length];
   const isMyTurn = currentTurnUid === me.uid;
@@ -791,7 +788,6 @@ function renderQuartets() {
     })
     .join('');
 
-  // בניית פאנל שאילה כשזה תורי
   let askPanelHtml = '';
   if (amIPlaying && isMyTurn) {
     const otherPlayers = turnOrder
@@ -877,7 +873,6 @@ function renderQuartets() {
       </div>`;
   }
 
-  // תצוגת היד שלי מקובצת לפי סדרות
   const myGroupedSets = QUARTET_SETS.filter((s) =>
     myHand.some((c) => c.setId === s.id)
   );
