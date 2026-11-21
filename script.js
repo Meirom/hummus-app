@@ -1043,3 +1043,22 @@ startBtn?.addEventListener('click', () => {
     }
   }, 1000);
 });
+async function requestAndShowSystemNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+  if (Notification.permission === 'granted') {
+    try {
+      const n = new Notification(title, {
+        body,
+        dir: 'rtl',
+        lang: 'he',
+      });
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+    } catch {}
+  }
+}
