@@ -405,8 +405,17 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
           console.error(dbErr);
         }
       } catch (e2) {
-        authError.textContent = 'שגיאה בהרשמה: ' + e2.message;
+        authError.textContent =
+          e2.code === 'auth/email-already-in-use'
+            ? 'המייל כבר רשום — בדקי שהסיסמה נכונה ✨'
+            : 'שגיאה בהרשמה: ' + e2.message;
       }
+    } else if (
+      loginErr.code === 'auth/invalid-credential' ||
+      loginErr.code === 'auth/wrong-password'
+    ) {
+      authError.textContent =
+        'המייל קיים או שהפרטים לא תואמים — בדקי סיסמה בלי לפתוח חשבון חדש 😉';
     } else {
       authError.textContent = 'שגיאה בהתחברות: ' + loginErr.message;
     }
