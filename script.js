@@ -35,6 +35,92 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+// אפשרויות עיצוב אווטר
+const AVATAR_BASES = ['🦐', '🐱', '🐸', '🧸', '🐰', '🦊', '👽', '🤖', '🦄', '🐵'];
+const AVATAR_COLORS = [
+  '#FFE5EC',
+  '#DCFCE7',
+  '#E0F2FE',
+  '#FEF3C7',
+  '#F3E8FF',
+  '#FFE4E6',
+  '#1E293B',
+];
+const AVATAR_ACCS = ['', '👑', '😎', '🎀', '🎧', '🔥', '🌸', '✨'];
+
+const DEFAULT_AVATAR = { base: '🦐', bg: '#FFE5EC', acc: '' };
+let draftAvatar = { ...DEFAULT_AVATAR };
+
+function renderAvatarHtml(av, sizeClass = 'sm') {
+  const safe = { ...DEFAULT_AVATAR, ...(av || {}) };
+  return `
+    <span class="avatar-circle ${sizeClass}" style="background:${safe.bg}">
+      <span class="av-base">${safe.base}</span>
+      ${safe.acc ? `<span class="av-acc">${safe.acc}</span>` : ''}
+    </span>`;
+}
+
+function updateAvatarPreview() {
+  const prev = document.getElementById('avatar-preview');
+  if (!prev) return;
+  prev.style.background = draftAvatar.bg;
+  prev.innerHTML = `
+    <span class="av-base">${draftAvatar.base}</span>
+    ${draftAvatar.acc ? `<span class="av-acc">${draftAvatar.acc}</span>` : ''}
+  `;
+  document
+    .querySelectorAll('#av-bases .av-opt')
+    .forEach((b) => b.classList.toggle('selected', b.dataset.val === draftAvatar.base));
+  document
+    .querySelectorAll('#av-colors .av-color-opt')
+    .forEach((b) => b.classList.toggle('selected', b.dataset.val === draftAvatar.bg));
+  document
+    .querySelectorAll('#av-accs .av-opt')
+    .forEach((b) => b.classList.toggle('selected', b.dataset.val === draftAvatar.acc));
+}
+
+function initAvatarStudio() {
+  const basesEl = document.getElementById('av-bases');
+  const colorsEl = document.getElementById('av-colors');
+  const accsEl = document.getElementById('av-accs');
+
+  basesEl.innerHTML = AVATAR_BASES.map(
+    (b) => `<button type="button" class="av-opt" data-val="${b}">${b}</button>`
+  ).join('');
+  colorsEl.innerHTML = AVATAR_COLORS.map(
+    (c) =>
+      `<button type="button" class="av-color-opt" data-val="${c}" style="background:${c}"></button>`
+  ).join('');
+  accsEl.innerHTML = AVATAR_ACCS.map(
+    (a) =>
+      `<button type="button" class="av-opt" data-val="${a}">${a || 'ללא'}</button>`
+  ).join('');
+
+  basesEl.querySelectorAll('.av-opt').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      draftAvatar.base = btn.dataset.val;
+      updateAvatarPreview();
+    });
+  });
+
+  colorsEl.querySelectorAll('.av-color-opt').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      draftAvatar.bg = btn.dataset.val;
+      updateAvatarPreview();
+    });
+  });
+
+  accsEl.querySelectorAll('.av-opt').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      draftAvatar.acc = btn.dataset.val;
+      updateAvatarPreview();
+    });
+  });
+
+  updateAvatarPreview();
+}
+initAvatarStudio();
+
 // מעבר בין מסכים
 const tabButtons = document.querySelectorAll('.tab-btn');
 const pageViews = document.querySelectorAll('.page-view');
@@ -165,6 +251,24 @@ let liveAlertTimer = null;
 let cachedAllUsers = {};
 let cachedOnlineUsers = {};
 
+// לחיצה על השם למעלה מעבירה ישר לעריכת אווטר
+userBadge.addEventListener('click', () => {
+  if (me) switchTab('club');
+});
+
+document.getElementById('save-avatar-btn').addEventListener('click', async () => {
+  if (!me) return;
+  await update(ref(db, `users/${me.uid}`), {
+    avatar: { ...draftAvatar },
+  });
+  await update(ref(db, `online/${me.uid}`), {
+    avatar: { ...draftAvatar },
+  });
+  const msg = document.getElementById('avatar-saved-msg');
+  msg.textContent = 'האווטר נשמר ומוצג לכולן! ✨';
+  setTimeout(() => (msg.textContent = ''), 3000);
+});
+
 document.getElementById('auth-submit').addEventListener('click', async () => {
   const email = authEmail.value.trim();
   const pass = authPass.value.trim();
@@ -190,6 +294,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
         streak: 1,
         lastStreakDay: getDayKey(0),
         lastSeen: Date.now(),
+        avatar: { ...DEFAULT_AVATAR },
       });
     } catch (e2) {
       authError.textContent = 'שגיאה בהתחברות: ' + e2.message;
@@ -280,12 +385,15 @@ function renderPresenceList() {
 
       return `
       <div class="online-row ${isOnline ? 'is-online' : 'is-offline'}">
-        <div class="online-info">
-          <span class="online-name">
-            <span class="${isOnline ? 'dot-green' : 'dot-gray'}"></span>
-            ${u.name || 'חברה'} ${isMe ? '(את)' : ''}${streakBadge}
-          </span>
-          <small class="last-seen-tag">${statusText}</small>
+        <div class="online-user-cell">
+          ${renderAvatarHtml(u.avatar, 'md')}
+          <div class="online-info">
+            <span class="online-name">
+              <span class="${isOnline ? 'dot-green' : 'dot-gray'}"></span>
+              ${u.name || 'חברה'} ${isMe ? '(את)' : ''}${streakBadge}
+            </span>
+            <small class="last-seen-tag">${statusText}</small>
+          </div>
         </div>
         ${
           !isMe && isOnline
@@ -322,6 +430,10 @@ onAuthStateChanged(auth, async (user) => {
     authName.value.trim() ||
     user.email.split('@')[0];
 
+  const myAv = { ...DEFAULT_AVATAR, ...(existing?.avatar || {}) };
+  draftAvatar = { ...myAv };
+  updateAvatarPreview();
+
   const today = getDayKey(0);
   const yesterday = getDayKey(-1);
   let newStreak = 1;
@@ -338,6 +450,7 @@ onAuthStateChanged(auth, async (user) => {
       streak: newStreak,
       lastStreakDay: today,
       lastSeen: Date.now(),
+      avatar: myAv,
     });
   } else {
     await set(userRef, {
@@ -348,16 +461,22 @@ onAuthStateChanged(auth, async (user) => {
       streak: 1,
       lastStreakDay: today,
       lastSeen: Date.now(),
+      avatar: myAv,
     });
   }
 
-  me = { uid: user.uid, name: displayName, email: user.email };
+  me = { uid: user.uid, name: displayName, email: user.email, avatar: myAv };
   authModal.classList.add('hidden');
-  userBadge.textContent = `${me.name} 🦐`;
+  userBadge.innerHTML = `${renderAvatarHtml(myAv, 'xs')} <span>${me.name}</span>`;
   myStreakEl.textContent = `🔥 ${newStreak}`;
 
   const myOnlineRef = ref(db, `online/${me.uid}`);
-  await set(myOnlineRef, { uid: me.uid, name: me.name, ts: Date.now() });
+  await set(myOnlineRef, {
+    uid: me.uid,
+    name: me.name,
+    avatar: myAv,
+    ts: Date.now(),
+  });
   onDisconnect(myOnlineRef).remove();
   onDisconnect(ref(db, `users/${me.uid}/lastSeen`)).set(Date.now());
 
@@ -372,6 +491,10 @@ onAuthStateChanged(auth, async (user) => {
     const val = snap.val() || {};
     myScoreEl.textContent = val.score || 0;
     myStreakEl.textContent = `🔥 ${val.streak || 1}`;
+    if (val.avatar && me) {
+      me.avatar = val.avatar;
+      userBadge.innerHTML = `${renderAvatarHtml(val.avatar, 'xs')} <span>${me.name}</span>`;
+    }
   });
 
   onValue(ref(db, 'online'), (snap) => {
@@ -419,11 +542,14 @@ onAuthStateChanged(auth, async (user) => {
       .slice(0, 10)
       .map(
         (u, idx) =>
-          `<div class="lb-row"><span>${idx === 0 ? '👑 ' : `${idx + 1}. `}${
-            u.name
-          } <small>(🔥 ${u.streak || 1})</small></span><b>${
-            u.score || 0
-          }</b></div>`
+          `<div class="lb-row">
+            <span class="lb-user-cell">
+              <b>${idx === 0 ? '👑' : `${idx + 1}.`}</b>
+              ${renderAvatarHtml(u.avatar, 'sm')}
+              <span>${u.name} <small>(🔥 ${u.streak || 1})</small></span>
+            </span>
+            <b>${u.score || 0}</b>
+          </div>`
       )
       .join('');
   });
@@ -445,7 +571,7 @@ onAuthStateChanged(auth, async (user) => {
       .join('');
   });
 
-  // משחק "מי זה?" — סודות אנונימיים של החבורה
+  // משחק "מי זה?"
   onValue(ref(db, 'secrets'), (snap) => {
     const raw = snap.val() || {};
     const entries = Object.entries(raw)
@@ -569,7 +695,6 @@ onAuthStateChanged(auth, async (user) => {
   });
 });
 
-// מאזין חי לאירועי כניסה + קריאות "תתחברו עכשיו!"
 onChildAdded(ref(db, 'liveEvents'), (snap) => {
   const ev = snap.val();
   if (!ev || !me) return;
@@ -673,8 +798,16 @@ function joinMatch(matchId, role) {
   onValue(ref(db, `matches/${matchId}`), (snap) => {
     const m = snap.val();
     if (!m) return;
-    document.getElementById('duel-p1').textContent = m.p1Name;
-    document.getElementById('duel-p2').textContent = m.p2Name;
+    const p1User = cachedAllUsers[m.p1Uid];
+    const p2User = cachedAllUsers[m.p2Uid];
+    document.getElementById('duel-p1').innerHTML = `${renderAvatarHtml(
+      p1User?.avatar,
+      'sm'
+    )} ${m.p1Name}`;
+    document.getElementById('duel-p2').innerHTML = `${renderAvatarHtml(
+      p2User?.avatar,
+      'sm'
+    )} ${m.p2Name}`;
     document.getElementById('tug-fill').style.width = `${m.pos}%`;
     document.getElementById('tug-marker').style.left = `${m.pos}%`;
 
