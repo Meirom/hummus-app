@@ -774,4 +774,265 @@ document.getElementById('board-send')?.addEventListener('click', async () => {
     ts: Date.now(),
   });
   addSavedPoints(1);
-  input.value =
+  input.value = '';
+});
+
+async function sendChallenge(targetUid, targetName) {
+  const matchId = `${me.uid}_${targetUid}_${Date.now()}`;
+  await set(ref(db, `matches/${matchId}`), {
+    p1Uid: me.uid,
+    p1Name: me.name,
+    p2Uid: targetUid,
+    p2Name: targetName,
+    pos: 50,
+    status: 'waiting',
+  });
+  await set(ref(db, `invites/${targetUid}`), {
+    matchId,
+    fromUid: me.uid,
+    fromName: me.name,
+  });
+  switchTab('games');
+  joinMatch(matchId, 'p1');
+}
+
+function joinMatch(matchId, role) {
+  activeMatchId = matchId;
+  myRole = role;
+  const pullBtn = document.getElementById('live-pull-btn');
+  const statusEl = document.getElementById('duel-status');
+
+  onValue(ref(db, `matches/${matchId}`), (snap) => {
+    const m = snap.val();
+    if (!m) return;
+    const p1User = cachedAllUsers[m.p1Uid];
+    const p2User = cachedAllUsers[m.p2Uid];
+    document.getElementById('duel-p1').innerHTML = `${renderAvatarHtml(
+      p1User?.avatar,
+      'sm'
+    )} ${m.p1Name}`;
+    document.getElementById('duel-p2').innerHTML = `${renderAvatarHtml(
+      p2User?.avatar,
+      'sm'
+    )} ${m.p2Name}`;
+    document.getElementById('tug-fill').style.width = `${m.pos}%`;
+    document.getElementById('tug-marker').style.left = `${m.pos}%`;
+
+    if (m.status === 'waiting') {
+      pullBtn.disabled = true;
+      statusEl.textContent = `⏳ מחכים ש-${m.p2Name} תאשר את ההזמנה...`;
+    } else if (m.status === 'playing') {
+      pullBtn.disabled = false;
+      statusEl.textContent = '🔥 הקרב חי! תלחצי הכי מהר שאפשר!!';
+      if (m.pos <= 5) {
+        update(ref(db, `matches/${matchId}`), {
+          status: 'done',
+          winner: m.p1Name,
+        });
+        if (myRole === 'p1') addSavedPoints(10);
+      } else if (m.pos >= 95) {
+        update(ref(db, `matches/${matchId}`), {
+          status: 'done',
+          winner: m.p2Name,
+        });
+        if (myRole === 'p2') addSavedPoints(10);
+      }
+    } else if (m.status === 'done') {
+      pullBtn.disabled = true;
+      statusEl.textContent = `🏆 ${m.winner} ניצחה בדו-קרב (+10 נקודות)!`;
+    }
+  });
+}
+
+document.getElementById('live-pull-btn')?.addEventListener('click', () => {
+  if (!activeMatchId || !myRole) return;
+  const delta = myRole === 'p1' ? -5 : 5;
+  update(ref(db, `matches/${activeMatchId}`), {
+    pos: increment(delta),
+  });
+});
+
+// ציטוטים
+const chatQuotes = [
+  'ריטה: "בגילגול הבא עדיף להיות שרימפס" 🦐',
+  'אור: "שכחו את המזוודה באבו דאבי" 🧳',
+  'ליאם: "שורד על מלפפונים (בקושי)" 🥒',
+  'שרה: "אני 100 חברים😝😝😝"',
+  'עינת: "יש לי דייט / שעת אפס באמת?" ✨',
+  'מירום: "אייס קפה טבעוני ופונקציות עד השמיים ☕"',
+  'החבורה: "האוטובוס הבריז והדלת נעולה, שלקלק" 🚌',
+];
+let lastQuoteIdx = -1;
+document.getElementById('quote-btn')?.addEventListener('click', () => {
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * chatQuotes.length);
+  } while (idx === lastQuoteIdx && chatQuotes.length > 1);
+  lastQuoteIdx = idx;
+  document.getElementById('hero-quote').textContent = chatQuotes[idx];
+});
+
+// מצב מלבלב + מצב לילה
+const blossomBtn = document.getElementById('blossom-toggle');
+const psychoBtn = document.getElementById('psycho-toggle');
+
+blossomBtn?.addEventListener('click', () => {
+  const on = document.body.classList.toggle('blossom');
+  if (on) document.body.classList.remove('psycho');
+  blossomBtn.classList.toggle('active-mode', on);
+  psychoBtn?.classList.remove('active-mode');
+});
+
+psychoBtn?.addEventListener('click', () => {
+  const on = document.body.classList.toggle('psycho');
+  if (on) document.body.classList.remove('blossom');
+  psychoBtn.classList.toggle('active-mode', on);
+  blossomBtn?.classList.remove('active-mode');
+});
+
+// טריוויה
+const triviaPool = [
+  {
+    q: '"היא פשוט צועקת על כל המסדרון לשרה היי סבתאאאאא"',
+    ans: 'ריטה',
+    opts: ['ריטה', 'אור', 'ליאם', 'עינת'],
+  },
+  {
+    q: '"3143 מטר הר ואנחנו בתוך העננים"',
+    ans: 'אור',
+    opts: ['שרה', 'אור', 'ריטה', 'ליאם'],
+  },
+  {
+    q: '"שורד על מלפפונים (בקושי)"',
+    ans: 'ליאם',
+    opts: ['ליאם', 'ריטה', 'אור', 'שרה'],
+  },
+  {
+    q: '"אייס קפה טבעוני — חקירת פונקציות קל, טריגו לא"',
+    ans: 'מירום',
+    opts: ['עינת', 'שרה', 'מירום', 'ריטה'],
+  },
+  {
+    q: '"שכחו את המזוודה באבו דאבי" 🧳',
+    ans: 'אור',
+    opts: ['אור', 'ריטה', 'שרה', 'ליאם'],
+  },
+  {
+    q: '"אני 100 חברים😝😝😝"',
+    ans: 'שרה',
+    opts: ['עינת', 'שרה', 'מירום', 'אור'],
+  },
+  {
+    q: '"בגילגול הבא עדיף להיות שרימפס" 🦐',
+    ans: 'ריטה',
+    opts: ['ליאם', 'עינת', 'ריטה', 'אור'],
+  },
+];
+
+let shuffledTrivia = [...triviaPool].sort(() => Math.random() - 0.5);
+let curRound = 0;
+
+function renderTrivia() {
+  const quizBox = document.getElementById('quiz-box');
+  if (!quizBox) return;
+  if (curRound >= shuffledTrivia.length) {
+    shuffledTrivia = [...triviaPool].sort(() => Math.random() - 0.5);
+    curRound = 0;
+  }
+  const item = shuffledTrivia[curRound];
+  quizBox.innerHTML = `
+    <p style="font-weight:800">${item.q}</p>
+    <div class="choice-grid">${item.opts
+      .map((o) => `<button class="choice-card" data-val="${o}">${o}</button>`)
+      .join('')}</div>
+    <div id="fb" class="feedback-line"></div>`;
+  quizBox.querySelectorAll('.choice-card').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const fb = document.getElementById('fb');
+      if (btn.dataset.val === item.ans) {
+        addSavedPoints(2);
+        fb.textContent = 'בול!! +2 נקודות לחשבון 🔥';
+      } else {
+        fb.textContent = `לאא זה ${item.ans} 😂`;
+      }
+      curRound++;
+      setTimeout(renderTrivia, 750);
+    });
+  });
+}
+renderTrivia();
+
+// תפוס את החומוס
+const startBtn = document.getElementById('start-game');
+const arena = document.getElementById('arena');
+let score = 0,
+  left = 12,
+  streak = 0,
+  spawner,
+  clock;
+
+startBtn?.addEventListener('click', () => {
+  clearInterval(spawner);
+  clearInterval(clock);
+  arena.innerHTML = '';
+  score = 0;
+  left = 12;
+  streak = 0;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('timer').textContent = '12';
+  document.getElementById('combo').textContent = 'x1';
+  startBtn.disabled = true;
+
+  spawner = setInterval(() => {
+    const t = document.createElement('button');
+    const r = Math.random();
+    const isBad = r < 0.25;
+    const isGold = !isBad && r > 0.85;
+
+    t.className = isBad
+      ? 'spud-target burnt'
+      : isGold
+      ? 'spud-target gold'
+      : 'spud-target';
+    t.textContent = isBad
+      ? ['קו הבריז', 'טריגו', 'דלת נעולה'][Math.floor(Math.random() * 3)]
+      : isGold
+      ? '🦐 שלקלק (+3)'
+      : ['חומוס', 'פסטה', 'אייס קפה', 'שוקולד פנדה'][
+          Math.floor(Math.random() * 4)
+        ];
+
+    t.style.left = `${16 + Math.random() * 68}%`;
+    t.style.top = `${20 + Math.random() * 60}%`;
+
+    t.addEventListener('click', () => {
+      if (isBad) {
+        streak = 0;
+        score = Math.max(0, score - 3);
+      } else {
+        streak++;
+        const mult = streak >= 5 ? 2 : 1;
+        score += (isGold ? 3 : 1) * mult;
+      }
+      document.getElementById('combo').textContent =
+        streak >= 5 ? 'x2 🔥' : 'x1';
+      document.getElementById('score').textContent = score;
+      t.remove();
+    });
+
+    arena.appendChild(t);
+    setTimeout(() => t.remove(), 880);
+  }, 380);
+
+  clock = setInterval(() => {
+    left--;
+    document.getElementById('timer').textContent = left;
+    if (left <= 0) {
+      clearInterval(spawner);
+      clearInterval(clock);
+      startBtn.disabled = false;
+      if (score > 0) addSavedPoints(score);
+      arena.innerHTML = `<h3>נגמר! +${score} נקודות נוספו לחשבון שלך 🦐</h3>`;
+    }
+  }, 1000);
+});
