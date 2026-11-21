@@ -284,22 +284,29 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
 
   try {
     await signInWithEmailAndPassword(auth, email, pass);
-  } catch {
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(cred.user, { displayName: name });
-      await set(ref(db, `users/${cred.user.uid}`), {
-        uid: cred.user.uid,
-        name,
-        email,
-        score: 0,
-        streak: 1,
-        lastStreakDay: getDayKey(0),
-        lastSeen: Date.now(),
-        avatar: { ...DEFAULT_AVATAR },
-      });
-    } catch (e2) {
-      authError.textContent = 'שגיאה בהתחברות: ' + e2.message;
+  } catch (loginErr) {
+    if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await updateProfile(cred.user, { displayName: name });
+        await set(ref(db, `users/${cred.user.uid}`), {
+          uid: cred.user.uid,
+          name,
+          email,
+          score: 0,
+          streak: 1,
+          lastStreakDay: getDayKey(0),
+          lastSeen: Date.now(),
+          avatar: { ...DEFAULT_AVATAR },
+        });
+      } catch (e2) {
+        authError.textContent =
+          e2.code === 'auth/email-already-in-use'
+            ? 'המייל כבר רשום — בדקי שהסיסמה נכונה.'
+            : 'שגיאה בהתחברות: ' + e2.message;
+      }
+    } else {
+      authError.textContent = 'שגיאה בהתחברות: ' + loginErr.message;
     }
   }
 });
