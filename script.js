@@ -83,6 +83,7 @@ function initAvatarStudio() {
   const basesEl = document.getElementById('av-bases');
   const colorsEl = document.getElementById('av-colors');
   const accsEl = document.getElementById('av-accs');
+  if (!basesEl || !colorsEl || !accsEl) return;
 
   basesEl.innerHTML = AVATAR_BASES.map(
     (b) => `<button type="button" class="av-opt" data-val="${b}">${b}</button>`
@@ -251,12 +252,11 @@ let liveAlertTimer = null;
 let cachedAllUsers = {};
 let cachedOnlineUsers = {};
 
-// לחיצה על השם למעלה מעבירה ישר לעריכת אווטר
 userBadge.addEventListener('click', () => {
   if (me) switchTab('club');
 });
 
-document.getElementById('save-avatar-btn').addEventListener('click', async () => {
+document.getElementById('save-avatar-btn')?.addEventListener('click', async () => {
   if (!me) return;
   await update(ref(db, `users/${me.uid}`), {
     avatar: { ...draftAvatar },
@@ -265,8 +265,10 @@ document.getElementById('save-avatar-btn').addEventListener('click', async () =>
     avatar: { ...draftAvatar },
   });
   const msg = document.getElementById('avatar-saved-msg');
-  msg.textContent = 'האווטר נשמר ומוצג לכולן! ✨';
-  setTimeout(() => (msg.textContent = ''), 3000);
+  if (msg) {
+    msg.textContent = 'האווטר נשמר ומוצג לכולן! ✨';
+    setTimeout(() => (msg.textContent = ''), 3000);
+  }
 });
 
 document.getElementById('auth-submit').addEventListener('click', async () => {
@@ -351,7 +353,7 @@ document.getElementById('open-requests-tab').addEventListener('click', () => {
 
 function renderPresenceList() {
   const listEl = document.getElementById('online-list');
-  if (!me) return;
+  if (!me || !listEl) return;
 
   const combined = new Map();
   Object.entries(cachedAllUsers).forEach(([uid, u]) => {
@@ -468,7 +470,7 @@ onAuthStateChanged(auth, async (user) => {
   me = { uid: user.uid, name: displayName, email: user.email, avatar: myAv };
   authModal.classList.add('hidden');
   userBadge.innerHTML = `${renderAvatarHtml(myAv, 'xs')} <span>${me.name}</span>`;
-  myStreakEl.textContent = `🔥 ${newStreak}`;
+  if (myStreakEl) myStreakEl.textContent = `🔥 ${newStreak}`;
 
   const myOnlineRef = ref(db, `online/${me.uid}`);
   await set(myOnlineRef, {
@@ -489,8 +491,8 @@ onAuthStateChanged(auth, async (user) => {
 
   onValue(ref(db, `users/${me.uid}`), (snap) => {
     const val = snap.val() || {};
-    myScoreEl.textContent = val.score || 0;
-    myStreakEl.textContent = `🔥 ${val.streak || 1}`;
+    if (myScoreEl) myScoreEl.textContent = val.score || 0;
+    if (myStreakEl) myStreakEl.textContent = `🔥 ${val.streak || 1}`;
     if (val.avatar && me) {
       me.avatar = val.avatar;
       userBadge.innerHTML = `${renderAvatarHtml(val.avatar, 'xs')} <span>${me.name}</span>`;
@@ -538,20 +540,22 @@ onAuthStateChanged(auth, async (user) => {
       (a, b) => (b.score || 0) - (a.score || 0)
     );
     const lb = document.getElementById('leaderboard');
-    lb.innerHTML = all
-      .slice(0, 10)
-      .map(
-        (u, idx) =>
-          `<div class="lb-row">
-            <span class="lb-user-cell">
-              <b>${idx === 0 ? '👑' : `${idx + 1}.`}</b>
-              ${renderAvatarHtml(u.avatar, 'sm')}
-              <span>${u.name} <small>(🔥 ${u.streak || 1})</small></span>
-            </span>
-            <b>${u.score || 0}</b>
-          </div>`
-      )
-      .join('');
+    if (lb) {
+      lb.innerHTML = all
+        .slice(0, 10)
+        .map(
+          (u, idx) =>
+            `<div class="lb-row">
+              <span class="lb-user-cell">
+                <b>${idx === 0 ? '👑' : `${idx + 1}.`}</b>
+                ${renderAvatarHtml(u.avatar, 'sm')}
+                <span>${u.name} <small>(🔥 ${u.streak || 1})</small></span>
+              </span>
+              <b>${u.score || 0}</b>
+            </div>`
+        )
+        .join('');
+    }
   });
 
   onValue(ref(db, 'chatWall'), (snap) => {
@@ -559,6 +563,7 @@ onAuthStateChanged(auth, async (user) => {
       .reverse()
       .slice(0, 25);
     const boardEl = document.getElementById('board-list');
+    if (!boardEl) return;
     if (items.length === 0) {
       boardEl.innerHTML = '<p>עדיין אין יציאות בקיר — תהיי הראשונה!</p>';
       return;
@@ -579,6 +584,7 @@ onAuthStateChanged(auth, async (user) => {
       .sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
     const secretsEl = document.getElementById('secrets-list');
+    if (!secretsEl) return;
     if (entries.length === 0) {
       secretsEl.innerHTML = '<p>אין עדיין סודות — תזרקי עובדה שלא יודעים עלייך!</p>';
       return;
@@ -656,6 +662,7 @@ onAuthStateChanged(auth, async (user) => {
       .sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
     const reqListEl = document.getElementById('requests-list');
+    if (!reqListEl) return;
     if (entries.length === 0) {
       reqListEl.innerHTML = '<p>אין עדיין בקשות או שיפורים.</p>';
       return;
@@ -710,7 +717,7 @@ onChildAdded(ref(db, 'liveEvents'), (snap) => {
   }
 });
 
-document.getElementById('ping-all-btn').addEventListener('click', async () => {
+document.getElementById('ping-all-btn')?.addEventListener('click', async () => {
   if (!me) return;
   await push(ref(db, 'liveEvents'), {
     type: 'ping',
@@ -728,7 +735,7 @@ onChildAdded(ref(db, 'requests'), (snap) => {
   }
 });
 
-document.getElementById('secret-send').addEventListener('click', async () => {
+document.getElementById('secret-send')?.addEventListener('click', async () => {
   const input = document.getElementById('secret-input');
   const txt = input.value.trim();
   if (!txt || !me) return;
@@ -743,7 +750,7 @@ document.getElementById('secret-send').addEventListener('click', async () => {
   input.value = '';
 });
 
-document.getElementById('request-send').addEventListener('click', async () => {
+document.getElementById('request-send')?.addEventListener('click', async () => {
   const input = document.getElementById('request-input');
   const txt = input.value.trim();
   if (!txt || !me) return;
@@ -757,7 +764,7 @@ document.getElementById('request-send').addEventListener('click', async () => {
   input.value = '';
 });
 
-document.getElementById('board-send').addEventListener('click', async () => {
+document.getElementById('board-send')?.addEventListener('click', async () => {
   const input = document.getElementById('board-input');
   const txt = input.value.trim();
   if (!txt || !me) return;
@@ -837,7 +844,7 @@ function joinMatch(matchId, role) {
   });
 }
 
-document.getElementById('live-pull-btn').addEventListener('click', () => {
+document.getElementById('live-pull-btn')?.addEventListener('click', () => {
   if (!activeMatchId || !myRole) return;
   const delta = myRole === 'p1' ? -5 : 5;
   update(ref(db, `matches/${activeMatchId}`), {
@@ -856,7 +863,7 @@ const chatQuotes = [
   'החבורה: "האוטובוס הבריז והדלת נעולה, שלקלק" 🚌',
 ];
 let lastQuoteIdx = -1;
-document.getElementById('quote-btn').addEventListener('click', () => {
+document.getElementById('quote-btn')?.addEventListener('click', () => {
   let idx;
   do {
     idx = Math.floor(Math.random() * chatQuotes.length);
@@ -869,18 +876,18 @@ document.getElementById('quote-btn').addEventListener('click', () => {
 const blossomBtn = document.getElementById('blossom-toggle');
 const psychoBtn = document.getElementById('psycho-toggle');
 
-blossomBtn.addEventListener('click', () => {
+blossomBtn?.addEventListener('click', () => {
   const on = document.body.classList.toggle('blossom');
   if (on) document.body.classList.remove('psycho');
   blossomBtn.classList.toggle('active-mode', on);
-  psychoBtn.classList.remove('active-mode');
+  psychoBtn?.classList.remove('active-mode');
 });
 
-psychoBtn.addEventListener('click', () => {
+psychoBtn?.addEventListener('click', () => {
   const on = document.body.classList.toggle('psycho');
   if (on) document.body.classList.remove('blossom');
   psychoBtn.classList.toggle('active-mode', on);
-  blossomBtn.classList.remove('active-mode');
+  blossomBtn?.classList.remove('active-mode');
 });
 
 // טריוויה
@@ -926,11 +933,12 @@ let shuffledTrivia = [...triviaPool].sort(() => Math.random() - 0.5);
 let curRound = 0;
 
 function renderTrivia() {
+  const quizBox = document.getElementById('quiz-box');
+  if (!quizBox) return;
   if (curRound >= shuffledTrivia.length) {
     shuffledTrivia = [...triviaPool].sort(() => Math.random() - 0.5);
     curRound = 0;
   }
-  const quizBox = document.getElementById('quiz-box');
   const item = shuffledTrivia[curRound];
   quizBox.innerHTML = `
     <p style="font-weight:800">${item.q}</p>
@@ -963,7 +971,7 @@ let score = 0,
   spawner,
   clock;
 
-startBtn.addEventListener('click', () => {
+startBtn?.addEventListener('click', () => {
   clearInterval(spawner);
   clearInterval(clock);
   arena.innerHTML = '';
