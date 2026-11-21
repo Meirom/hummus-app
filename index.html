@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>חומוס על פסטה 🦐🦐</title>
-    <link rel="stylesheet" href="./styles.css?v=6" />
+    <link rel="stylesheet" href="./styles.css?v=7" />
   </head>
   <body>
     <canvas id="bg-canvas"></canvas>
@@ -61,24 +61,16 @@
       </div>
     </header>
 
-    <!-- תפריט ניווט ראשי -->
+    <!-- תפריט ניווט ראשי: לכל דבר כפתור משלו -->
     <nav class="main-tabs">
-      <button class="tab-btn active" data-tab="lobby">
-        <span class="tab-ico">🏠</span>
-        <span>לובי</span>
-      </button>
-      <button class="tab-btn" data-tab="games">
-        <span class="tab-ico">🎮</span>
-        <span>משחקים</span>
-      </button>
-      <button class="tab-btn" data-tab="social">
-        <span class="tab-ico">🤫</span>
-        <span>סודות וצ'אט</span>
-      </button>
-      <button class="tab-btn" data-tab="club">
-        <span class="tab-ico">🏆</span>
-        <span>אווטר ושיאים</span>
-      </button>
+      <button class="tab-btn active" data-tab="lobby">🏠 לובי</button>
+      <button class="tab-btn" data-tab="duel">⚔️ דו-קרב</button>
+      <button class="tab-btn" data-tab="games">🎮 משחקים</button>
+      <button class="tab-btn" data-tab="secrets">🤫 מי זה?</button>
+      <button class="tab-btn" data-tab="chat">💬 יציאות</button>
+      <button class="tab-btn" data-tab="avatar">🎨 אווטר</button>
+      <button class="tab-btn" data-tab="club">🏆 שיאים</button>
+      <button class="tab-btn" data-tab="requests">💡 בקשות</button>
     </nav>
 
     <!-- מסך 1: לובי -->
@@ -117,9 +109,9 @@
       </section>
     </main>
 
-    <!-- מסך 2: משחקים ודו-קרב -->
-    <main id="tab-games" class="page-view">
-      <section class="panel-card duel-card" style="margin-bottom: 16px;">
+    <!-- מסך 2: דו-קרב -->
+    <main id="tab-duel" class="page-view">
+      <section class="panel-card duel-card">
         <div class="panel-head">
           <h2>זירת הדו-קרב ⚔️</h2>
           <span>הזמיני חברה מהלובי לקרב בלייב</span>
@@ -136,7 +128,10 @@
         <button id="live-pull-btn" class="tap-pad" disabled>משכי את השרימפס אלייך! 🦐🔥</button>
         <div id="duel-status" class="feedback-line">הזמיני מישהי מהלובי כדי להתחיל קרב.</div>
       </section>
+    </main>
 
+    <!-- מסך 3: משחקים -->
+    <main id="tab-games" class="page-view">
       <div class="two-col">
         <section class="panel-card">
           <h2>מי אמר את זה?! 💬</h2>
@@ -152,38 +147,39 @@
       </div>
     </main>
 
-    <!-- מסך 3: סודות ("מי זה?") וקיר הצ'אט -->
-    <main id="tab-social" class="page-view">
-      <div class="two-col">
-        <section class="panel-card">
-          <div class="panel-head">
-            <h2>משחק "מי זה?" 🤫</h2>
-            <span>שלחי עובדה שלא יודעים עלייך — וכולן ינחשו!</span>
-          </div>
-          <div class="board-form">
-            <input id="secret-input" type="text" maxlength="140" placeholder="עובדה סודית עליי (זה מוצג אנונימי!)..." />
-            <button id="secret-send" class="solid-pill">שלחי סוד 🕵️‍♀️</button>
-          </div>
-          <div id="secrets-list" class="secrets-list">טוען סודות...</div>
-        </section>
-
-        <section class="panel-card">
-          <div class="panel-head">
-            <h2>קיר היציאות 💬</h2>
-            <span>משפטים ובדיחות שנשמרים לכולן</span>
-          </div>
-          <div class="board-form">
-            <input id="board-input" type="text" maxlength="140" placeholder="כתבי יציאה מהצ'אט..." />
-            <button id="board-send" class="solid-pill">שגר 🚀</button>
-          </div>
-          <div id="board-list" class="board-list">טוען יציאות...</div>
-        </section>
-      </div>
+    <!-- מסך 4: מי זה? -->
+    <main id="tab-secrets" class="page-view">
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>משחק "מי זה?" 🤫</h2>
+          <span>שלחי עובדה שלא יודעים עלייך — וכולן ינחשו!</span>
+        </div>
+        <div class="board-form">
+          <input id="secret-input" type="text" maxlength="140" placeholder="עובדה סודית עליי (זה מוצג אנונימי!)..." />
+          <button id="secret-send" class="solid-pill">שלחי סוד 🕵️‍♀️</button>
+        </div>
+        <div id="secrets-list" class="secrets-list">טוען סודות...</div>
+      </section>
     </main>
 
-    <!-- מסך 4: עיצוב אווטר, שיאים ובקשות -->
-    <main id="tab-club" class="page-view">
-      <section class="panel-card" style="margin-bottom: 16px;">
+    <!-- מסך 5: יציאות -->
+    <main id="tab-chat" class="page-view">
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>קיר היציאות 💬</h2>
+          <span>משפטים ובדיחות שנשמרים לכולן</span>
+        </div>
+        <div class="board-form">
+          <input id="board-input" type="text" maxlength="140" placeholder="כתבי יציאה מהצ'אט..." />
+          <button id="board-send" class="solid-pill">שגר 🚀</button>
+        </div>
+        <div id="board-list" class="board-list">טוען יציאות...</div>
+      </section>
+    </main>
+
+    <!-- מסך 6: אווטר -->
+    <main id="tab-avatar" class="page-view">
+      <section class="panel-card">
         <div class="panel-head">
           <h2>עיצוב האווטר שלי 🎨</h2>
           <span>הדמות שתופיע ליד השם שלך בכל האתר</span>
@@ -215,30 +211,34 @@
           </div>
         </div>
       </section>
-
-      <div class="two-col">
-        <section class="panel-card">
-          <div class="panel-head">
-            <h2>טבלת השיאים 🏆</h2>
-            <span>ניקוד + רצף יומי</span>
-          </div>
-          <div id="leaderboard" class="leaderboard-box"></div>
-        </section>
-
-        <section class="panel-card">
-          <div class="panel-head">
-            <h2>בקשות ושיפורים 💡</h2>
-            <span>רעיונות לפיצ'רים חדשים</span>
-          </div>
-          <div class="board-form">
-            <input id="request-input" type="text" maxlength="180" placeholder="מה להוסיף לאתר?..." />
-            <button id="request-send" class="solid-pill">שלחי 💡</button>
-          </div>
-          <div id="requests-list" class="requests-list">טוען בקשות...</div>
-        </section>
-      </div>
     </main>
 
-    <script type="module" src="./script.js?v=6"></script>
+    <!-- מסך 7: שיאים -->
+    <main id="tab-club" class="page-view">
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>טבלת השיאים 🏆</h2>
+          <span>ניקוד + רצף יומי</span>
+        </div>
+        <div id="leaderboard" class="leaderboard-box"></div>
+      </section>
+    </main>
+
+    <!-- מסך 8: בקשות -->
+    <main id="tab-requests" class="page-view">
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>בקשות ושיפורים 💡</h2>
+          <span>רעיונות לפיצ'רים חדשים</span>
+        </div>
+        <div class="board-form">
+          <input id="request-input" type="text" maxlength="180" placeholder="מה להוסיף לאתר?..." />
+          <button id="request-send" class="solid-pill">שלחי 💡</button>
+        </div>
+        <div id="requests-list" class="requests-list">טוען בקשות...</div>
+      </section>
+    </main>
+
+    <script type="module" src="./script.js?v=7"></script>
   </body>
 </html>
