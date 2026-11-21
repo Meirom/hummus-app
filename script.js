@@ -400,6 +400,22 @@ document.getElementById('open-requests-tab').addEventListener('click', () => {
   switchTab('requests');
 });
 
+async function sendBeep(targetUid, targetName) {
+  if (!me || !targetUid) return;
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+  await push(ref(db, 'liveEvents'), {
+    type: 'beep',
+    targetUid,
+    targetName,
+    byUid: me.uid,
+    byName: me.name,
+    ts: Date.now(),
+  });
+  showLiveAlert('📣 צפצפת!', `שלחת צפצוף ל-${targetName}`);
+}
+
 function renderPresenceList() {
   const listEl = document.getElementById('online-list');
   if (!me || !listEl) return;
@@ -447,13 +463,26 @@ function renderPresenceList() {
           </div>
         </div>
         ${
-          !isMe && isOnline
-            ? `<button class="solid-pill invite-btn" data-uid="${u.uid}" data-name="${u.name}" style="margin-top:0">דו-קרב ⚔️</button>`
+          !isMe
+            ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="glass-pill beep-btn" data-uid="${u.uid}" data-name="${u.name}" style="margin-top:0">צפצפי 📣</button>
+                ${
+                  isOnline
+                    ? `<button class="solid-pill invite-btn" data-uid="${u.uid}" data-name="${u.name}" style="margin-top:0">דו-קרב ⚔️</button>`
+                    : ''
+                }
+              </div>`
             : ''
         }
       </div>`;
     })
     .join('');
+
+  listEl.querySelectorAll('.beep-btn').forEach((btn) => {
+    btn.addEventListener('click', () =>
+      sendBeep(btn.dataset.uid, btn.dataset.name)
+    );
+  });
 
   listEl.querySelectorAll('.invite-btn').forEach((btn) => {
     btn.addEventListener('click', () =>
@@ -777,6 +806,15 @@ onChildAdded(ref(db, 'liveEvents'), (snap) => {
     if (ev.byUid !== me.uid) {
       showDeviceNotification('🚨 קריאה דחופה!', `${ev.byName} קוראת לכולן להתחבר עכשיו!`);
     }
+  } else if (ev.type === 'beep' && ev.targetUid === me.uid) {
+    showLiveAlert(
+      '📣 מישהי מצפצפת לך!',
+      `${ev.byName} קוראת לך להיכנס עכשיו!! 🦐`
+    );
+    showDeviceNotification(
+      '📣 צפצוף מחומוס על פסטה!',
+      `${ev.byName} מצפצפת לך להיכנס עכשיו!`
+    );
   }
 });
 
