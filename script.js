@@ -504,11 +504,15 @@ function renderPresenceList() {
 
   const combined = new Map();
   Object.entries(cachedAllUsers).forEach(([uid, u]) => {
-    combined.set(uid, { uid, ...u });
+    if (u && u.name && u.name.trim()) {
+      combined.set(uid, { uid, ...u });
+    }
   });
   Object.entries(cachedOnlineUsers).forEach(([uid, u]) => {
-    const prev = combined.get(uid) || {};
-    combined.set(uid, { ...prev, uid, ...u });
+    if (u && u.name && u.name.trim()) {
+      const prev = combined.get(uid) || {};
+      combined.set(uid, { ...prev, uid, ...u });
+    }
   });
 
   const allList = Array.from(combined.values()).sort((a, b) => {
@@ -539,7 +543,7 @@ function renderPresenceList() {
           <div class="online-info">
             <span class="online-name">
               <span class="${isOnline ? 'dot-green' : 'dot-gray'}"></span>
-              ${u.name || 'חברה'} ${isMe ? '(את)' : ''}${streakBadge}
+              ${u.name} ${isMe ? '(את)' : ''}${streakBadge}
             </span>
             <small class="last-seen-tag">${statusText}</small>
           </div>
@@ -574,7 +578,489 @@ function renderPresenceList() {
 }
 
 // ==========================================
-// טורניר איקס-עיגול נוק-אאוט לייב (משעמם בשיעור)
+// רביעיות החבורה אונליין לייב (12 סדרות · עד 7 שחקניות)
+// ==========================================
+const QUARTET_SETS = [
+  { id: 'rita', title: 'ריטה', cards: ['יוקי', 'אגד', 'חומוס', 'מלבלב'] },
+  { id: 'shrotzka', title: 'שרוצקה', cards: ['בייבי הר (baby hair)', 'צרפתית', 'שקל', 'מסטיק'] },
+  { id: 'going', title: 'גוינג (אור)', cards: ['ליצ׳י', 'פדוסוקה', 'top', 'חלומות'] },
+  { id: 'ohadit', title: 'אוהדית', cards: ['אשת חיל', 'קליסטניקס', 'אזולה', 'קוסקוס'] },
+  { id: 'einatim', title: 'עינתים', cards: ['גזר', 'victoria secret', 'ג׳ין', 'פילאטיס'] },
+  { id: 'meirom', title: 'מירום', cards: ['ילדים', 'קולה', 'קפה', 'פלג'] },
+  { id: 'liam', title: 'ליעמ', cards: ['שניצל', 'מייקל', 'בנק סטיקרים', 'ההומלס השקט'] },
+  { id: 'dabatz', title: 'דבצ (דן בן צבי)', cards: ['אלברט איינשטיין', 'נאצי (מהגזע הארי)', 'צחוק של mem', 'המורה דן'] },
+  { id: 'teachers', title: 'מורים', cards: ['שלומי - אישה טובה/יפה', 'מור - ספציצי, שלוש', 'הוד - תפוח', 'שי שלח - סממית'] },
+  { id: 'trip11', title: 'טיול שנתי יא', cards: ['קוקיות לדבצ ואוהדית', 'מקלחות', 'החלקה על הבוץ', 'מגלשת מזרונים'] },
+  { id: 'root', title: 'שורש "פ-ש-פ-ש"', cards: ['פישפוש (פיעל)', 'התפשפש (התפעל)', 'פושפש (פועל)', 'נפשפש (נפעל)'] },
+  { id: 'knesset', title: 'כנסת', cards: ['טלי דיי כבר', 'אני מזי… מזמן', 'מי גנב לנו את זעתר את החומוס את הפלאפל', 'סיניזאנגוואזבגין'] },
+];
+
+function buildFullDeck() {
+  const deck = [];
+  QUARTET_SETS.forEach((setObj) => {
+    setObj.cards.forEach((cardName, idx) => {
+      deck.push({
+        uidCard: `${setObj.id}_${idx}`,
+        setId: setObj.id,
+        setTitle: setObj.title,
+        cardName,
+      });
+    });
+  });
+  return deck.sort(() => Math.random() - 0.5);
+}
+
+function extractCompletedBooks(handArr, existingBooks = []) {
+  const bySet = {};
+  (handArr || []).forEach((c) => {
+    bySet[c.setId] = (bySet[c.setId] || 0) + 1;
+  });
+
+  const newBooks = [...existingBooks];
+  let remainingHand = [...(handArr || [])];
+  let newlyCompletedCount = 0;
+
+  Object.entries(bySet).forEach(([setId, count]) => {
+    if (count === 4) {
+      const setObj = QUARTET_SETS.find((s) => s.id === setId);
+      if (setObj && !newBooks.includes(setObj.title)) {
+        newBooks.push(setObj.title);
+        newlyCompletedCount++;
+      }
+      remainingHand = remainingHand.filter((c) => c.setId !== setId);
+    }
+  });
+
+  return { remainingHand, newBooks, newlyCompletedCount };
+}
+
+let cachedQuartets = null;
+let selectedAskTarget = '';
+let selectedAskSet = '';
+let selectedAskCard = '';
+
+function renderQuartets() {
+  const root = document.getElementById('quartets-root');
+  if (!root || !me) return;
+
+  const q = cachedQuartets;
+
+  // שלב 1: לובי רביעיות
+  if (!q || q.status === 'lobby') {
+    const playersMap = q?.players || {};
+    const playersList = Object.values(playersMap);
+    const amIIn = Boolean(playersMap[me.uid]);
+
+    root.innerHTML = `
+      <p style="margin-bottom:10px; font-weight:700;">מי שבשיעור נכנסת ללובי הרביעיות (עד 7 שחקניות) 👇</p>
+      <div class="ttt-lobby-players">
+        ${
+          playersList.length === 0
+            ? '<span style="color:var(--muted)">עדיין אף אחת לא נכנסה לרביעיות...</span>'
+            : playersList
+                .map(
+                  (p) =>
+                    `<span class="ttt-player-chip">${renderAvatarHtml(
+                      p.avatar,
+                      'xs'
+                    )} ${p.name}</span>`
+                )
+                .join('')
+        }
+      </div>
+      <div class="hero-actions">
+        ${
+          amIIn
+            ? `<button id="q-leave-btn" class="glass-pill">צאי מהלובי</button>`
+            : `<button id="q-join-btn" class="solid-pill ping-btn">נכנסת לרביעיות 🃏</button>`
+        }
+        <button id="q-start-btn" class="solid-pill" ${
+          playersList.length < 2 ? 'disabled style="opacity:0.45"' : ''
+        }>חלקו קלפים והתחילו (${playersList.length}/7) 🚀</button>
+      </div>
+    `;
+
+    document.getElementById('q-join-btn')?.addEventListener('click', async () => {
+      if (playersList.length >= 7) {
+        showLiveAlert('הלובי מלא!', 'כבר יש 7 שחקניות בחדר 😉');
+        return;
+      }
+      await set(ref(db, `quartetsGame/players/${me.uid}`), {
+        uid: me.uid,
+        name: me.name,
+        avatar: me.avatar || DEFAULT_AVATAR,
+        joinedAt: Date.now(),
+      });
+      if (!q) {
+        await update(ref(db, 'quartetsGame'), { status: 'lobby' });
+      }
+    });
+
+    document.getElementById('q-leave-btn')?.addEventListener('click', async () => {
+      await remove(ref(db, `quartetsGame/players/${me.uid}`));
+    });
+
+    document.getElementById('q-start-btn')?.addEventListener('click', async () => {
+      if (playersList.length < 2) return;
+      const deck = buildFullDeck();
+      const ordered = [...playersList].sort(
+        (a, b) => (a.joinedAt || 0) - (b.joinedAt || 0)
+      );
+      const hands = {};
+      const books = {};
+
+      ordered.forEach((p) => {
+        const dealt = deck.splice(0, 4);
+        const res = extractCompletedBooks(dealt, []);
+        hands[p.uid] = res.remainingHand;
+        books[p.uid] = res.newBooks;
+      });
+
+      await set(ref(db, 'quartetsGame'), {
+        status: 'playing',
+        players: playersMap,
+        turnOrder: ordered.map((p) => p.uid),
+        turnIdx: 0,
+        deck,
+        hands,
+        books,
+        lastAction: `🃏 הקלפים חולקו! תור של ${ordered[0].name} לשאול`,
+      });
+    });
+    return;
+  }
+
+  // שלב 2: סיום משחק
+  if (q.status === 'finished') {
+    const playersList = Object.values(q.players || {});
+    const ranked = playersList
+      .map((p) => ({
+        ...p,
+        count: (q.books?.[p.uid] || []).length,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    root.innerHTML = `
+      <div class="ttt-champ-box">
+        <div style="font-size:2.4rem;">🃏🏆🃏</div>
+        <h3>נגמרו כל 12 הרביעיות!</h3>
+        <div style="margin:12px 0;">
+          ${ranked
+            .map(
+              (p, i) =>
+                `<div style="font-weight:800; margin:4px 0;">${
+                  i === 0 ? '👑' : `${i + 1}.`
+                } ${p.name}: ${p.count} רביעיות</div>`
+            )
+            .join('')}
+        </div>
+        <button id="q-reset-btn" class="solid-pill">משחק חדש 🔁</button>
+      </div>
+    `;
+
+    document.getElementById('q-reset-btn')?.addEventListener('click', async () => {
+      await set(ref(db, 'quartetsGame'), { status: 'lobby', players: {} });
+    });
+    return;
+  }
+
+  // שלב 3: משחק פעיל
+  const turnOrder = q.turnOrder || [];
+  const currentTurnUid = turnOrder[q.turnIdx % turnOrder.length];
+  const isMyTurn = currentTurnUid === me.uid;
+  const playersMap = q.players || {};
+  const deck = Array.isArray(q.deck) ? q.deck : [];
+  const myHand = Array.isArray(q.hands?.[me.uid]) ? q.hands[me.uid] : [];
+  const myBooks = Array.isArray(q.books?.[me.uid]) ? q.books[me.uid] : [];
+  const amIPlaying = turnOrder.includes(me.uid);
+
+  const playersBarHtml = turnOrder
+    .map((uid) => {
+      const p = playersMap[uid] || { name: 'שחקנית' };
+      const cardCount = (q.hands?.[uid] || []).length;
+      const bookCount = (q.books?.[uid] || []).length;
+      const active = uid === currentTurnUid;
+      return `
+        <div class="q-player-box ${active ? 'active-turn' : ''}">
+          ${renderAvatarHtml(p.avatar, 'xs')}
+          <div>
+            <b>${p.name} ${uid === me.uid ? '(את)' : ''}</b>
+            <div style="font-size:0.75rem; color:var(--muted);">🃏 ${cardCount} קלפים · 🏆 ${bookCount} רביעיות</div>
+          </div>
+        </div>`;
+    })
+    .join('');
+
+  // בניית פאנל שאילה כשזה תורי
+  let askPanelHtml = '';
+  if (amIPlaying && isMyTurn) {
+    const otherPlayers = turnOrder
+      .filter((uid) => uid !== me.uid)
+      .map((uid) => playersMap[uid])
+      .filter(Boolean);
+
+    const mySetIds = Array.from(new Set(myHand.map((c) => c.setId)));
+    const availableSets = QUARTET_SETS.filter((s) => mySetIds.includes(s.id));
+
+    if (!selectedAskTarget || !otherPlayers.some((p) => p.uid === selectedAskTarget)) {
+      selectedAskTarget = otherPlayers[0]?.uid || '';
+    }
+    if (!selectedAskSet || !availableSets.some((s) => s.id === selectedAskSet)) {
+      selectedAskSet = availableSets[0]?.id || '';
+    }
+
+    const chosenSetObj = QUARTET_SETS.find((s) => s.id === selectedAskSet);
+    const myCardsInChosenSet = myHand
+      .filter((c) => c.setId === selectedAskSet)
+      .map((c) => c.cardName);
+    const missingCards = chosenSetObj
+      ? chosenSetObj.cards.filter((cn) => !myCardsInChosenSet.includes(cn))
+      : [];
+
+    if (!selectedAskCard || !missingCards.includes(selectedAskCard)) {
+      selectedAskCard = missingCards[0] || '';
+    }
+
+    if (availableSets.length === 0) {
+      askPanelHtml = `
+        <div class="q-ask-panel">
+          <strong>אין לך קלפים ביד כרגע!</strong>
+          <button id="q-draw-pass-btn" class="solid-pill ping-btn" style="margin-top:8px;">קחי קלף מהקופה / העבירי תור 🃏</button>
+        </div>`;
+    } else {
+      askPanelHtml = `
+        <div class="q-ask-panel">
+          <strong>🔥 תורך לשאול! בחרי חברה, סדרה וקלף שחסר לך:</strong>
+          <div class="q-ask-row">
+            <select id="q-target-sel" class="q-select">
+              ${otherPlayers
+                .map(
+                  (p) =>
+                    `<option value="${p.uid}" ${
+                      p.uid === selectedAskTarget ? 'selected' : ''
+                    }>שאלי את ${p.name}</option>`
+                )
+                .join('')}
+            </select>
+
+            <select id="q-set-sel" class="q-select">
+              ${availableSets
+                .map(
+                  (s) =>
+                    `<option value="${s.id}" ${
+                      s.id === selectedAskSet ? 'selected' : ''
+                    }>סדרה: ${s.title}</option>`
+                )
+                .join('')}
+            </select>
+
+            <select id="q-card-sel" class="q-select">
+              ${missingCards
+                .map(
+                  (cn) =>
+                    `<option value="${cn}" ${
+                      cn === selectedAskCard ? 'selected' : ''
+                    }>קלף: ${cn}</option>`
+                )
+                .join('')}
+            </select>
+
+            <button id="q-ask-btn" class="solid-pill ping-btn">יש לך?! 🙋‍♀️</button>
+          </div>
+        </div>`;
+    }
+  } else if (!amIPlaying && deck.length >= 4 && turnOrder.length < 7) {
+    askPanelHtml = `
+      <div class="q-ask-panel">
+        <strong>המשחק כבר רץ ויש עוד קלפים בקופה!</strong>
+        <button id="q-late-join-btn" class="solid-pill ping-btn" style="margin-top:8px;">הצטרפי עכשיו (+4 קלפים) 🃏</button>
+      </div>`;
+  }
+
+  // תצוגת היד שלי מקובצת לפי סדרות
+  const myGroupedSets = QUARTET_SETS.filter((s) =>
+    myHand.some((c) => c.setId === s.id)
+  );
+
+  const handHtml =
+    myGroupedSets.length === 0
+      ? '<p style="color:var(--muted);">אין לך קלפים ביד כרגע.</p>'
+      : `<div class="q-hand-grid">
+          ${myGroupedSets
+            .map((s) => {
+              const ownedNames = myHand
+                .filter((c) => c.setId === s.id)
+                .map((c) => c.cardName);
+              return `
+                <div class="q-set-card">
+                  <div class="q-set-title">
+                    <span>${s.title}</span>
+                    <span>${ownedNames.length}/4</span>
+                  </div>
+                  ${s.cards
+                    .map((cn) => {
+                      const hasIt = ownedNames.includes(cn);
+                      return `<div class="q-card-item ${
+                        hasIt ? '' : 'missing'
+                      }">${hasIt ? '✅' : '⬜'} ${cn}</div>`;
+                    })
+                    .join('')}
+                </div>`;
+            })
+            .join('')}
+        </div>`;
+
+  const booksHtml =
+    myBooks.length > 0
+      ? `<div class="q-books-row">${myBooks
+          .map((b) => `<span class="q-book-badge">🏆 ${b}</span>`)
+          .join('')}</div>`
+      : '';
+
+  root.innerHTML = `
+    <div class="q-banner">
+      <div>
+        <strong>קופה: ${deck.length} קלפים</strong> ·
+        <span>תור נוכחי: <b>${playersMap[currentTurnUid]?.name || ''}</b></span>
+      </div>
+      <button id="q-abort-btn" class="mini-btn">אפסי משחק</button>
+    </div>
+
+    <div class="q-log">${q.lastAction || ''}</div>
+    <div class="q-players-bar">${playersBarHtml}</div>
+    ${askPanelHtml}
+
+    <div>
+      <strong>הקלפים שלך ביד (${myHand.length}):</strong>
+      ${booksHtml}
+      ${handHtml}
+    </div>
+  `;
+
+  document.getElementById('q-target-sel')?.addEventListener('change', (e) => {
+    selectedAskTarget = e.target.value;
+  });
+
+  document.getElementById('q-set-sel')?.addEventListener('change', (e) => {
+    selectedAskSet = e.target.value;
+    selectedAskCard = '';
+    renderQuartets();
+  });
+
+  document.getElementById('q-card-sel')?.addEventListener('change', (e) => {
+    selectedAskCard = e.target.value;
+  });
+
+  document.getElementById('q-ask-btn')?.addEventListener('click', async () => {
+    const targetUid = document.getElementById('q-target-sel')?.value;
+    const setId = document.getElementById('q-set-sel')?.value;
+    const cardName = document.getElementById('q-card-sel')?.value;
+    if (!targetUid || !setId || !cardName) return;
+
+    const targetName = playersMap[targetUid]?.name || 'חברה';
+    const setObj = QUARTET_SETS.find((s) => s.id === setId);
+    const targetHand = Array.isArray(q.hands?.[targetUid])
+      ? [...q.hands[targetUid]]
+      : [];
+    const curMyHand = [...myHand];
+    const curDeck = [...deck];
+
+    const foundIdx = targetHand.findIndex(
+      (c) => c.setId === setId && c.cardName === cardName
+    );
+
+    let nextTurnIdx = q.turnIdx;
+    let actionMsg = '';
+    let updatedMyHand = curMyHand;
+    let updatedTargetHand = targetHand;
+
+    if (foundIdx !== -1) {
+      const [takenCard] = updatedTargetHand.splice(foundIdx, 1);
+      updatedMyHand.push(takenCard);
+      actionMsg = `🎯 ${me.name} שאלה את ${targetName} על "${cardName}" (${setObj.title}) — וקיבלה! התור נשאר אצל ${me.name}`;
+    } else {
+      let drewMsg = 'והקופה ריקה';
+      if (curDeck.length > 0) {
+        const drawn = curDeck.shift();
+        updatedMyHand.push(drawn);
+        drewMsg = 'ולקחה קלף מהקופה';
+      }
+      nextTurnIdx = (q.turnIdx + 1) % turnOrder.length;
+      const nextPlayerName = playersMap[turnOrder[nextTurnIdx]]?.name || '';
+      actionMsg = `❌ ${me.name} שאלה את ${targetName} על "${cardName}" (${setObj.title}) — אין לה! ${me.name} ${drewMsg}. התור עובר ל-${nextPlayerName}`;
+    }
+
+    const res = extractCompletedBooks(updatedMyHand, myBooks);
+    updatedMyHand = res.remainingHand;
+
+    if (res.newlyCompletedCount > 0) {
+      addSavedPoints(res.newlyCompletedCount * 5);
+      actionMsg += ` · 🏆 ${me.name} השלימה רביעייה (+5 נקודות)!`;
+    }
+
+    const totalBooksAfter =
+      Object.entries(q.books || {}).reduce(
+        (sum, [uid, arr]) => (uid === me.uid ? sum : sum + (arr?.length || 0)),
+        0
+      ) + res.newBooks.length;
+
+    const isFinished = totalBooksAfter >= QUARTET_SETS.length;
+
+    await update(ref(db, 'quartetsGame'), {
+      status: isFinished ? 'finished' : 'playing',
+      deck: curDeck,
+      turnIdx: nextTurnIdx,
+      lastAction: actionMsg,
+      [`hands/${me.uid}`]: updatedMyHand,
+      [`hands/${targetUid}`]: updatedTargetHand,
+      [`books/${me.uid}`]: res.newBooks,
+    });
+  });
+
+  document.getElementById('q-draw-pass-btn')?.addEventListener('click', async () => {
+    const curDeck = [...deck];
+    let updatedMyHand = [...myHand];
+    if (curDeck.length > 0) {
+      updatedMyHand.push(curDeck.shift());
+    }
+    const res = extractCompletedBooks(updatedMyHand, myBooks);
+    const nextTurnIdx = (q.turnIdx + 1) % turnOrder.length;
+    await update(ref(db, 'quartetsGame'), {
+      deck: curDeck,
+      turnIdx: nextTurnIdx,
+      lastAction: `🃏 ${me.name} משכה קלף והעבירה תור`,
+      [`hands/${me.uid}`]: res.remainingHand,
+      [`books/${me.uid}`]: res.newBooks,
+    });
+  });
+
+  document.getElementById('q-late-join-btn')?.addEventListener('click', async () => {
+    const curDeck = [...deck];
+    if (curDeck.length < 4) return;
+    const dealt = curDeck.splice(0, 4);
+    const res = extractCompletedBooks(dealt, []);
+    await update(ref(db, 'quartetsGame'), {
+      deck: curDeck,
+      turnOrder: [...turnOrder, me.uid],
+      lastAction: `🙋‍♀️ ${me.name} הצטרפה למשחק באמצע!`,
+      [`players/${me.uid}`]: {
+        uid: me.uid,
+        name: me.name,
+        avatar: me.avatar || DEFAULT_AVATAR,
+        joinedAt: Date.now(),
+      },
+      [`hands/${me.uid}`]: res.remainingHand,
+      [`books/${me.uid}`]: res.newBooks,
+    });
+  });
+
+  document.getElementById('q-abort-btn')?.addEventListener('click', async () => {
+    await set(ref(db, 'quartetsGame'), { status: 'lobby', players: {} });
+  });
+}
+
+// ==========================================
+// טורניר איקס-עיגול נוק-אאוט לייב
 // ==========================================
 const TTT_WIN_LINES = [
   [0, 1, 2],
@@ -915,7 +1401,6 @@ onAuthStateChanged(auth, async (user) => {
   const fallbackName =
     user.displayName || authName.value.trim() || user.email?.split('@')[0] || 'חברה';
 
-  // מציגים מיד שהמשתמש מחובר וסוגרים את המודאל
   me = { uid: user.uid, name: fallbackName, email: user.email, avatar: { ...DEFAULT_AVATAR } };
   authModal.classList.add('hidden');
   userBadge.innerHTML = `${renderAvatarHtml(me.avatar, 'xs')} <span>${me.name}</span>`;
@@ -1026,6 +1511,11 @@ onAuthStateChanged(auth, async (user) => {
     console.error(err);
   }
 
+  onValue(ref(db, 'quartetsGame'), (snap) => {
+    cachedQuartets = snap.val();
+    renderQuartets();
+  });
+
   onValue(ref(db, 'tttTournament'), (snap) => {
     cachedTttTourney = snap.val();
     renderTttTournament();
@@ -1088,9 +1578,9 @@ onAuthStateChanged(auth, async (user) => {
     cachedAllUsers = snap.val() || {};
     renderPresenceList();
 
-    const all = Object.values(cachedAllUsers).sort(
-      (a, b) => (b.score || 0) - (a.score || 0)
-    );
+    const all = Object.values(cachedAllUsers)
+      .filter((u) => u && u.name && u.name.trim())
+      .sort((a, b) => (b.score || 0) - (a.score || 0));
     const lb = document.getElementById('leaderboard');
     if (lb) {
       lb.innerHTML = all
@@ -1170,7 +1660,9 @@ onAuthStateChanged(auth, async (user) => {
           actionHtml = `<div class="secret-meta"><span>ניחשת: <b>${myGuess}</b> · מחכים לחשיפה ⏳</span></div>`;
         } else {
           const opts =
-            memberNames.length > 0 ? memberNames : ['מירום', 'ריטה', 'אור', 'שרה'];
+            memberNames.length > 0
+              ? memberNames
+              : ['מירום', 'ריטה', 'אור', 'שרה', 'אוהד', 'ליעם', 'עינת'];
           actionHtml = `
             <div class="guess-row">
               ${opts
@@ -1426,6 +1918,7 @@ const chatQuotes = [
   'ליאם: "שורד על מלפפונים (בקושי)" 🥒',
   'שרה: "אני 100 חברים😝😝😝"',
   'עינת: "יש לי דייט / שעת אפס באמת?" ✨',
+  'אוהד: "קליסטניקס, אזולה וקוסקוס של אשת חיל" 💪',
   'מירום: "אייס קפה טבעוני ופונקציות עד השמיים ☕"',
   'החבורה: "האוטובוס הבריז והדלת נעולה, שלקלק" 🚌',
 ];
@@ -1457,12 +1950,12 @@ psychoBtn?.addEventListener('click', () => {
   blossomBtn?.classList.remove('active-mode');
 });
 
-// טריוויה
+// טריוויה (כל 7 החברים!)
 const triviaPool = [
   {
     q: '"היא פשוט צועקת על כל המסדרון לשרה היי סבתאאאאא"',
     ans: 'ריטה',
-    opts: ['ריטה', 'אור', 'ליאם', 'עינת'],
+    opts: ['ריטה', 'אור', 'ליאם', 'אוהד'],
   },
   {
     q: '"3143 מטר הר ואנחנו בתוך העננים"',
@@ -1472,12 +1965,17 @@ const triviaPool = [
   {
     q: '"שורד על מלפפונים (בקושי)"',
     ans: 'ליאם',
-    opts: ['ליאם', 'ריטה', 'אור', 'שרה'],
+    opts: ['ליאם', 'ריטה', 'אוהד', 'שרה'],
+  },
+  {
+    q: '"אשת חיל, קליסטניקס, אזולה וקוסקוס"',
+    ans: 'אוהד',
+    opts: ['אוהד', 'מירום', 'עינת', 'ליאם'],
   },
   {
     q: '"אייס קפה טבעוני — חקירת פונקציות קל, טריגו לא"',
     ans: 'מירום',
-    opts: ['עינת', 'שרה', 'מירום', 'ריטה'],
+    opts: ['עינת', 'שרה', 'מירום', 'אוהד'],
   },
   {
     q: '"שכחו את המזוודה באבו דאבי" 🧳',
@@ -1487,12 +1985,17 @@ const triviaPool = [
   {
     q: '"אני 100 חברים😝😝😝"',
     ans: 'שרה',
-    opts: ['עינת', 'שרה', 'מירום', 'אור'],
+    opts: ['עינת', 'שרה', 'מירום', 'אוהד'],
+  },
+  {
+    q: '"גזר, ויקטוריה סיקרט, ג׳ין ופילאטיס"',
+    ans: 'עינת',
+    opts: ['עינת', 'ריטה', 'שרה', 'אור'],
   },
   {
     q: '"בגילגול הבא עדיף להיות שרימפס" 🦐',
     ans: 'ריטה',
-    opts: ['ליאם', 'עינת', 'ריטה', 'אור'],
+    opts: ['ליאם', 'עינת', 'ריטה', 'אוהד'],
   },
 ];
 
