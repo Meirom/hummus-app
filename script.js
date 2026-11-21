@@ -8,7 +8,7 @@ import {
   signOut,
 } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
 import {
-  getDatabase,
+  initializeDatabase,
   ref,
   set,
   push,
@@ -43,7 +43,7 @@ const TELEGRAM_BOT_USERNAME = 'hummus_ping_bot';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getDatabase(app);
+const db = initializeDatabase(app, { experimentalForceLongPolling: true });
 
 let messaging = null;
 try {
@@ -627,7 +627,6 @@ function renderTttTournament() {
 
   const t = cachedTttTourney;
 
-  // שלב 1: לובי הרשמה לטורניר
   if (!t || t.status === 'lobby') {
     const playersMap = t?.players || {};
     const playersList = Object.values(playersMap);
@@ -692,7 +691,6 @@ function renderTttTournament() {
     return;
   }
 
-  // שלב 3: הוכרזה אלופת השיעור!
   if (t.status === 'finished' && t.champion) {
     const champKey = `${t.tourneyId}_${t.champion.uid}`;
     if (t.champion.uid === me.uid && rewardedChampionKey !== champKey) {
@@ -715,7 +713,6 @@ function renderTttTournament() {
     return;
   }
 
-  // שלב 2: סיבוב פעיל — לוחות במקביל!
   const matchesList = Object.values(t.matches || {});
   const roundNum = t.round || 1;
   const myMatch = matchesList.find(
@@ -741,7 +738,6 @@ function renderTttTournament() {
       const p2Moves = myMatch.p2Moves || [];
       const isMyTurn = myMatch.status === 'playing' && myMatch.turn === myMark;
 
-      // סימן שעומד להיעלם (איקס-עיגול אינסופי — מקסימום 3 לכל אחת)
       const fadingIndex =
         myMatch.status === 'playing'
           ? myMatch.turn === 'p1' && p1Moves.length >= 3
@@ -825,7 +821,6 @@ function renderTttTournament() {
     </div>
   `;
 
-  // לחיצה על משבצת בלוח שלי
   root.querySelectorAll('.ttt-cell').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!myMatch || myMatch.status !== 'playing') return;
@@ -865,7 +860,6 @@ function renderTttTournament() {
     });
   });
 
-  // מעבר לסיבוב המנצחות הבא או הכרזת אלופה
   document.getElementById('ttt-next-round-btn')?.addEventListener('click', async () => {
     const winners = matchesList
       .map((m) => (m.winnerUid === m.p1?.uid ? m.p1 : m.p2))
@@ -991,7 +985,6 @@ onAuthStateChanged(auth, async (user) => {
     ts: Date.now(),
   });
 
-  // האזנה לטורניר איקס-עיגול בלייב
   onValue(ref(db, 'tttTournament'), (snap) => {
     cachedTttTourney = snap.val();
     renderTttTournament();
