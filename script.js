@@ -386,10 +386,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (loginErr) {
-    if (
-      loginErr.code === 'auth/user-not-found' ||
-      loginErr.code === 'auth/invalid-credential'
-    ) {
+    if (loginErr.code === 'auth/user-not-found') {
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(cred.user, { displayName: name });
@@ -408,10 +405,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
           console.error(dbErr);
         }
       } catch (e2) {
-        authError.textContent =
-          e2.code === 'auth/email-already-in-use'
-            ? 'המייל כבר רשום — בדקי שהסיסמה נכונה.'
-            : 'שגיאה בהתחברות: ' + e2.message;
+        authError.textContent = 'שגיאה בהרשמה: ' + e2.message;
       }
     } else {
       authError.textContent = 'שגיאה בהתחברות: ' + loginErr.message;
@@ -912,7 +906,7 @@ onAuthStateChanged(auth, async (user) => {
   const fallbackName =
     user.displayName || authName.value.trim() || user.email?.split('@')[0] || 'חברה';
 
-  // סוגרים את המודאל מיד כדי לא להיתקע על קריאות רשת
+  // מציגים מיד שהמשתמש מחובר וסוגרים את המודאל
   me = { uid: user.uid, name: fallbackName, email: user.email, avatar: { ...DEFAULT_AVATAR } };
   authModal.classList.add('hidden');
   userBadge.innerHTML = `${renderAvatarHtml(me.avatar, 'xs')} <span>${me.name}</span>`;
