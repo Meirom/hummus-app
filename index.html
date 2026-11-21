@@ -1,274 +1,127 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>חומוס על פסטה 🦐🦐</title>
-    <link rel="stylesheet" href="./styles.css?v=12" />
-  </head>
-  <body>
-    <canvas id="bg-canvas"></canvas>
+/* רביעיות החבורה */
+.q-banner {
+  background: var(--surface-soft);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
-    <div id="auth-modal" class="login-overlay">
-      <div class="login-card">
-        <span class="badge">HUMMUS ONLINE · כיתה יא</span>
-        <h2>חומוס על פסטה 🦐</h2>
-        <p>כניסה עם מייל וסיסמה (חשבון חדש נוצר אוטומטית בכניסה ראשונה)</p>
-        <div class="auth-form">
-          <input id="auth-name" type="text" placeholder="השם שלך (מירום / ריטה / אור / שרה...)" />
-          <input id="auth-email" type="email" placeholder="מייל (name@example.com)" />
-          <input id="auth-pass" type="password" placeholder="סיסמה (לפחות 6 תווים)" />
-          <button id="auth-submit" class="solid-pill">כניסה למטורף 🔥</button>
-          <div id="auth-error" class="error-text"></div>
-        </div>
-      </div>
-    </div>
+.q-log {
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
 
-    <!-- התראות חיות -->
-    <div id="invite-toast" class="invite-toast hidden">
-      <p id="invite-text">הזמנה לדו-קרב!</p>
-      <div class="invite-actions">
-        <button id="accept-invite" class="solid-pill">יאללה ⚔️</button>
-        <button id="decline-invite" class="glass-pill">לא עכשיו</button>
-      </div>
-    </div>
+.q-players-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
 
-    <div id="request-toast" class="request-toast hidden">
-      <div class="toast-top">
-        <strong>💡 רעיון חדש בתיבה!</strong>
-        <button id="close-request-toast" class="toast-x" aria-label="סגור">✕</button>
-      </div>
-      <p id="request-toast-text"></p>
-      <button id="open-requests-tab" class="solid-pill">לצפייה 📋</button>
-    </div>
+.q-player-box {
+  background: var(--surface-soft);
+  border: var(--border);
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+}
 
-    <div id="live-alert-toast" class="live-alert-toast hidden">
-      <div class="toast-top">
-        <strong id="live-alert-title">🟢 פעילות חיה!</strong>
-        <button id="close-live-alert" class="toast-x" aria-label="סגור">✕</button>
-      </div>
-      <p id="live-alert-text"></p>
-    </div>
+.q-player-box.active-turn {
+  border: 2px solid var(--teal);
+  background: var(--surface);
+}
 
-    <!-- בר עליון נקי -->
-    <header class="top-nav">
-      <div class="brand">חומוס על פסטה 🦐</div>
-      <div class="nav-right">
-        <button id="active-user-badge" class="user-pill" title="לחצי לעיצוב אווטר">לא מחוברת</button>
-        <button id="blossom-toggle" class="icon-pill" title="מצב מלבלב">💖</button>
-        <button id="psycho-toggle" class="icon-pill" title="מצב לילה">🌙</button>
-        <button id="logout-btn" class="icon-pill" title="התנתקות">🚪</button>
-      </div>
-    </header>
+.q-ask-panel {
+  background: var(--surface-soft);
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
 
-    <!-- תפריט ניווט ראשי: לכל דבר כפתור משלו -->
-    <nav class="main-tabs">
-      <button class="tab-btn active" data-tab="lobby">🏠 לובי</button>
-      <button class="tab-btn" data-tab="class">🥱 משעמם בשיעור</button>
-      <button class="tab-btn" data-tab="duel">⚔️ דו-קרב</button>
-      <button class="tab-btn" data-tab="games">🎮 משחקים</button>
-      <button class="tab-btn" data-tab="secrets">🤫 מי זה?</button>
-      <button class="tab-btn" data-tab="chat">💬 יציאות</button>
-      <button class="tab-btn" data-tab="avatar">🎨 אווטר</button>
-      <button class="tab-btn" data-tab="club">🏆 שיאים</button>
-      <button class="tab-btn" data-tab="requests">💡 בקשות</button>
-    </nav>
+.q-ask-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
 
-    <!-- מסך 1: לובי -->
-    <main id="tab-lobby" class="page-view active">
-      <section class="lobby-top-grid">
-        <div class="panel-card welcome-card">
-          <div class="welcome-head">
-            <span class="badge">שלקלק · ירושלים</span>
-            <span class="shrimp-mini">🦐</span>
-          </div>
-          <p id="hero-quote" class="quote-display">"בגילגול הבא עדיף להיות שרימפס" — שלקלק.</p>
-          <div class="hero-actions">
-            <button id="quote-btn" class="glass-pill">יציאה חדשה 💬</button>
-            <button id="ping-all-btn" class="solid-pill ping-btn">תתחברו עכשיו!! 🚨</button>
-            <button id="enable-notify-btn" class="glass-pill">הפעילי התראות 🔔</button>
-          </div>
-        </div>
+.q-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'Heebo', sans-serif;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
 
-        <div class="mini-stats-grid">
-          <div class="stat-box">
-            <span id="my-saved-score" class="stat-num">0</span>
-            <small>הנקודות שלי</small>
-          </div>
-          <div class="stat-box streak-box">
-            <span id="my-streak-num" class="stat-num">🔥 1</span>
-            <small>רצף יומי</small>
-          </div>
-        </div>
-      </section>
+.q-hand-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
 
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>סטטוס החבורה 🟢</h2>
-          <span>מי אונליין עכשיו ומתי נראתה לאחרונה</span>
-        </div>
-        <div id="online-list" class="online-list">טוען סטטוס חבורה...</div>
-      </section>
-    </main>
+.q-set-card {
+  background: var(--surface-soft);
+  border: var(--border);
+  border-radius: 16px;
+  padding: 12px;
+}
 
-    <!-- מסך חדש: משעמם בשיעור -->
-    <main id="tab-class" class="page-view">
-      <section class="panel-card" style="margin-bottom: 16px;">
-        <div class="panel-head">
-          <h2>טורניר איקס-עיגול לייב 🏆❌⭕</h2>
-          <span>כולן משחקות במקביל — כל מנצחת עולה לשלב הבא עד שיש אלופת שיעור!</span>
-        </div>
-        <div id="ttt-tournament-root">טוען זירת טורניר...</div>
-      </section>
+.q-set-title {
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
 
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>עוד משחקי שיעור חופר 🥱</h2>
-          <span>הקטגוריה שלכן — תגידו איזה משחק להוסיף לפה הבא!</span>
-        </div>
-        <div class="coming-soon-grid">
-          <div class="soon-card">
-            <strong>✍️ סיפור בהמשכים</strong>
-            <small>כל אחת מוסיפה מילה אחת בתורה בלי שהמורה תשים לב</small>
-          </div>
-          <div class="soon-card">
-            <strong>🎲 קונה או לא קונה לייב</strong>
-            <small>הצבעה מהירה של כל הכיתה ברגע</small>
-          </div>
-        </div>
-      </section>
-    </main>
+.q-card-item {
+  background: var(--surface);
+  border-radius: 9px;
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
 
-    <!-- מסך 2: דו-קרב -->
-    <main id="tab-duel" class="page-view">
-      <section class="panel-card duel-card">
-        <div class="panel-head">
-          <h2>זירת הדו-קרב ⚔️</h2>
-          <span>הזמיני חברה מהלובי לקרב בלייב</span>
-        </div>
-        <div class="duel-scoreboard">
-          <strong id="duel-p1">שחקנית 1</strong>
-          <span class="vs-badge">VS</span>
-          <strong id="duel-p2">שחקנית 2</strong>
-        </div>
-        <div class="tug-track">
-          <div id="tug-fill" class="tug-fill" style="width: 50%"></div>
-          <div id="tug-marker" class="tug-marker" style="left: 50%">🦐</div>
-        </div>
-        <button id="live-pull-btn" class="tap-pad" disabled>משכי את השרימפס אלייך! 🦐🔥</button>
-        <div id="duel-status" class="feedback-line">הזמיני מישהי מהלובי כדי להתחיל קרב.</div>
-      </section>
-    </main>
+.q-card-item.missing {
+  opacity: 0.45;
+  border: 1px dashed var(--muted);
+  background: transparent;
+}
 
-    <!-- מסך 3: משחקים -->
-    <main id="tab-games" class="page-view">
-      <div class="two-col">
-        <section class="panel-card">
-          <h2>מי אמר את זה?! 💬</h2>
-          <div id="quiz-box"></div>
-        </section>
+.q-books-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
 
-        <section class="panel-card">
-          <h2>תפוס את החומוס 🍲</h2>
-          <p class="game-meta">זמן: <b id="timer">12</b>s | ניקוד: <b id="score">0</b> | קומבו: <b id="combo">x1</b></p>
-          <button id="start-game" class="solid-pill">התחל סיבוב מטורף</button>
-          <div id="arena" class="arena-box">לחצי התחל סיבוב ותאספי נקודות לטבלה 🔥</div>
-        </section>
-      </div>
-    </main>
-
-    <!-- מסך 4: מי זה? -->
-    <main id="tab-secrets" class="page-view">
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>משחק "מי זה?" 🤫</h2>
-          <span>שלחי עובדה שלא יודעים עלייך — וכולן ינחשו!</span>
-        </div>
-        <div class="board-form">
-          <input id="secret-input" type="text" maxlength="140" placeholder="עובדה סודית עליי (זה מוצג אנונימי!)..." />
-          <button id="secret-send" class="solid-pill">שלחי סוד 🕵️‍♀️</button>
-        </div>
-        <div id="secrets-list" class="secrets-list">טוען סודות...</div>
-      </section>
-    </main>
-
-    <!-- מסך 5: יציאות -->
-    <main id="tab-chat" class="page-view">
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>קיר היציאות 💬</h2>
-          <span>משפטים ובדיחות שנשמרים לכולן</span>
-        </div>
-        <div class="board-form">
-          <input id="board-input" type="text" maxlength="140" placeholder="כתבי יציאה מהצ'אט..." />
-          <button id="board-send" class="solid-pill">שגר 🚀</button>
-        </div>
-        <div id="board-list" class="board-list">טוען יציאות...</div>
-      </section>
-    </main>
-
-    <!-- מסך 6: אווטר -->
-    <main id="tab-avatar" class="page-view">
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>עיצוב האווטר שלי 🎨</h2>
-          <span>הדמות שתופיע ליד השם שלך בכל האתר</span>
-        </div>
-
-        <div class="avatar-studio">
-          <div class="avatar-preview-wrap">
-            <div id="avatar-preview" class="avatar-circle lg" style="background: #FFE5EC;">
-              <span class="av-base">🦐</span>
-              <span class="av-acc">👑</span>
-            </div>
-            <button id="save-avatar-btn" class="solid-pill ping-btn">שמרי אווטר ✨</button>
-            <div id="avatar-saved-msg" class="feedback-line" style="margin-top:6px;"></div>
-          </div>
-
-          <div class="avatar-controls">
-            <div class="av-group">
-              <label>1. דמות:</label>
-              <div id="av-bases" class="av-picker-row"></div>
-            </div>
-            <div class="av-group">
-              <label>2. צבע רקע:</label>
-              <div id="av-colors" class="av-picker-row"></div>
-            </div>
-            <div class="av-group">
-              <label>3. אקססורי:</label>
-              <div id="av-accs" class="av-picker-row"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- מסך 7: שיאים -->
-    <main id="tab-club" class="page-view">
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>טבלת השיאים 🏆</h2>
-          <span>ניקוד + רצף יומי</span>
-        </div>
-        <div id="leaderboard" class="leaderboard-box"></div>
-      </section>
-    </main>
-
-    <!-- מסך 8: בקשות -->
-    <main id="tab-requests" class="page-view">
-      <section class="panel-card">
-        <div class="panel-head">
-          <h2>בקשות ושיפורים 💡</h2>
-          <span>רעיונות לפיצ'רים חדשים</span>
-        </div>
-        <div class="board-form">
-          <input id="request-input" type="text" maxlength="180" placeholder="מה להוסיף לאתר?..." />
-          <button id="request-send" class="solid-pill">שלחי 💡</button>
-        </div>
-        <div id="requests-list" class="requests-list">טוען בקשות...</div>
-      </section>
-    </main>
-
-<script type="module" src="./script.js?v=16"></script>
-  </body>
-</html>
+.q-book-badge {
+  background: var(--teal);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
