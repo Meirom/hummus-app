@@ -94,6 +94,35 @@ function updateAvatarPreview() {
     .forEach((b) => b.classList.toggle('selected', b.dataset.val === draftAvatar.acc));
 }
 
+function initBirthdaySelectors() {
+  const daySel = document.getElementById('bday-day');
+  const monthSel = document.getElementById('bday-month');
+  if (!daySel || !monthSel) return;
+
+  const months = [
+    'ינואר',
+    'פברואר',
+    'מרץ',
+    'אפריל',
+    'מאי',
+    'יוני',
+    'יולי',
+    'אוגוסט',
+    'ספטמבר',
+    'אוקטובר',
+    'נובמבר',
+    'דצמבר',
+  ];
+
+  daySel.innerHTML =
+    '<option value="">יום</option>' +
+    Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+
+  monthSel.innerHTML =
+    '<option value="">חודש</option>' +
+    months.map((m, idx) => `<option value="${idx + 1}">${m}</option>`).join('');
+}
+
 function initAvatarStudio() {
   const basesEl = document.getElementById('av-bases');
   const colorsEl = document.getElementById('av-colors');
@@ -133,6 +162,7 @@ function initAvatarStudio() {
     });
   });
 
+  initBirthdaySelectors();
   updateAvatarPreview();
 }
 initAvatarStudio();
@@ -307,7 +337,7 @@ document.getElementById('enable-notify-btn')?.addEventListener('click', async ()
 
   showLiveAlert(
     '📲 חיבור לטלגרם נפתח!',
-    'לחצי Start בבוט בטלגרם כדי לחבר אוטומטית ולקבל צפצופים 🦐🔥'
+    'לחצי Start בבוט בטלגרם כדי לחבר אוטומטית ולקבל צפצופים ותזכורות יומולדת 🦐🔥'
   );
 });
 
@@ -328,6 +358,68 @@ function formatLastSeen(ts) {
   if (hrs < 24) return `לפני ${hrs} שעות`;
   const days = Math.floor(hrs / 24);
   return `לפני ${days} ימים`;
+}
+
+// חישוב ימים עד יום ההולדת (7, 6, 5... 0)
+function getDaysUntilBirthday(bday) {
+  if (!bday || !bday.day || !bday.month) return null;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let target = new Date(now.getFullYear(), Number(bday.month) - 1, Number(bday.day));
+  if (target < todayStart) {
+    target = new Date(now.getFullYear() + 1, Number(bday.month) - 1, Number(bday.day));
+  }
+  return Math.round((target - todayStart) / 86400000);
+}
+
+function checkUpcomingBirthdays() {
+  const banner = document.getElementById('bday-banner');
+  if (!banner || !me) return;
+
+  const upcoming = [];
+  const todayKey = getDayKey(0);
+
+  Object.entries(cachedAllUsers).forEach(([uid, u]) => {
+    if (!u || !u.name || !u.birthday) return;
+    const daysLeft = getDaysUntilBirthday(u.birthday);
+    if (daysLeft === null || daysLeft > 7) return;
+
+    if (uid === me.uid) {
+      if (daysLeft === 0) {
+        upcoming.push(`🎉 מזל טוב ${me.name}!! היום יום ההולדת שלך 🎂🦐💖`);
+      }
+      return;
+    }
+
+    const countdownText =
+      daysLeft === 0
+        ? `🎂 היום יום ההולדת של ${u.name}!! אל תשכחו לברך ולהפתיע 🎉`
+        : daysLeft === 1
+        ? `🤫 מחר (עוד יום אחד!) יום ההולדת של ${u.name} (${u.birthday.day}.${u.birthday.month}) — תתארגנו על משהו מיוחד!`
+        : `🤫 עוד ${daysLeft} ימים יום ההולדת של ${u.name} (${u.birthday.day}.${u.birthday.month}) — זמן לתכנן הפתעה!`;
+
+    upcoming.push(countdownText);
+
+    const sentKey = `bday_tg_${todayKey}_${uid}_${me.uid}`;
+    if (!localStorage.getItem(sentKey)) {
+      localStorage.setItem(sentKey, '1');
+      triggerPushServer({
+        targetUid: me.uid,
+        title: daysLeft === 0 ? `🎂 היום יומולדת ל-${u.name}!` : `🤫 ספירה לאחור ליומולדת של ${u.name}!`,
+        body: countdownText,
+      });
+    }
+  });
+
+  if (upcoming.length === 0) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  banner.classList.remove('hidden');
+  banner.innerHTML = upcoming
+    .map((line) => `<div style="font-weight:800; padding:3px 0;">${line}</div>`)
+    .join('');
 }
 
 // התחברות
@@ -355,17 +447,24 @@ userBadge.addEventListener('click', () => {
 
 document.getElementById('save-avatar-btn')?.addEventListener('click', async () => {
   if (!me) return;
+  const bDay = Number(document.getElementById('bday-day')?.value || 0);
+  const bMonth = Number(document.getElementById('bday-month')?.value || 0);
+  const birthday = bDay && bMonth ? { day: bDay, month: bMonth } : null;
+
   try {
     await update(ref(db, `users/${me.uid}`), {
       avatar: { ...draftAvatar },
+      birthday,
     });
     await update(ref(db, `online/${me.uid}`), {
       avatar: { ...draftAvatar },
     });
     const msg = document.getElementById('avatar-saved-msg');
     if (msg) {
-      msg.textContent = 'האווטר נשמר ומוצג לכולן! ✨';
-      setTimeout(() => (msg.textContent = ''), 3000);
+      msg.textContent = birthday
+        ? `הפרופיל ויום ההולדת (${bDay}.${bMonth}) נשמרו! 🎂✨`
+        : 'האווטר נשמר ומוצג לכולן! ✨';
+      setTimeout(() => (msg.textContent = ''), 3500);
     }
   } catch (err) {
     console.error(err);
@@ -1414,6 +1513,13 @@ onAuthStateChanged(auth, async (user) => {
   draftAvatar = { ...myAv };
   updateAvatarPreview();
 
+  if (existing?.birthday) {
+    const dEl = document.getElementById('bday-day');
+    const mEl = document.getElementById('bday-month');
+    if (dEl) dEl.value = String(existing.birthday.day || '');
+    if (mEl) mEl.value = String(existing.birthday.month || '');
+  }
+
   me = { uid: user.uid, name: displayName, email: user.email, avatar: myAv };
   userBadge.innerHTML = `${renderAvatarHtml(myAv, 'xs')} <span>${me.name}</span>`;
 
@@ -1572,6 +1678,7 @@ onAuthStateChanged(auth, async (user) => {
   onValue(ref(db, 'users'), (snap) => {
     cachedAllUsers = snap.val() || {};
     renderPresenceList();
+    checkUpcomingBirthdays();
 
     const all = Object.values(cachedAllUsers)
       .filter((u) => u && u.name && u.name.trim())
@@ -1657,7 +1764,7 @@ onAuthStateChanged(auth, async (user) => {
           const opts =
             memberNames.length > 0
               ? memberNames
-              : ['מירום', 'ריטה', 'אור', 'שרה', 'אוהד', 'ליעם', 'עינת'];
+              : ['מירום', 'ריטה', 'אור', 'שרה', 'אוהד', 'ליאם', 'עינת'];
           actionHtml = `
             <div class="guess-row">
               ${opts
@@ -1906,14 +2013,16 @@ document.getElementById('live-pull-btn')?.addEventListener('click', () => {
   });
 });
 
-// ציטוטים
+// ציטוטים שקופצים בלובי (כולל אוהד מהצ'אט!)
 const chatQuotes = [
   'ריטה: "בגילגול הבא עדיף להיות שרימפס" 🦐',
   'אור: "שכחו את המזוודה באבו דאבי" 🧳',
   'ליאם: "שורד על מלפפונים (בקושי)" 🥒',
   'שרה: "אני 100 חברים😝😝😝"',
-  'עינת: "יש לי דייט / שעת אפס באמת?" ✨',
-  'אוהד: "קליסטניקס, אזולה וקוסקוס של אשת חיל" 💪',
+  'עינת: "יש לי דייט ביום שישי עם חבר של אוהד 🥲" ✨',
+  'אוהד: "בקיצור יש לי אגו מטורף בדרך רעה" 😎',
+  'אוהד: "אני לא 100% בטוח אבל אני חושב שהוא רוצה אותך והוא חושב שככה מדברים לבנות" 💬',
+  'אוהד: "שוקו הכי טוב... שוקו קררר" 🍫',
   'מירום: "אייס קפה טבעוני ופונקציות עד השמיים ☕"',
   'החבורה: "האוטובוס הבריז והדלת נעולה, שלקלק" 🚌',
 ];
@@ -1945,7 +2054,7 @@ psychoBtn?.addEventListener('click', () => {
   blossomBtn?.classList.remove('active-mode');
 });
 
-// טריוויה (כל 7 החברים!)
+// טריוויה — מי אמר את זה?!
 const triviaPool = [
   {
     q: '"היא פשוט צועקת על כל המסדרון לשרה היי סבתאאאאא"',
@@ -1963,9 +2072,19 @@ const triviaPool = [
     opts: ['ליאם', 'ריטה', 'אוהד', 'שרה'],
   },
   {
-    q: '"אשת חיל, קליסטניקס, אזולה וקוסקוס"',
+    q: '"אני לא 100% בטוח אבל אני חושב שהוא רוצה אותך והוא חושב שככה מדברים לבנות"',
     ans: 'אוהד',
-    opts: ['אוהד', 'מירום', 'עינת', 'ליאם'],
+    opts: ['אוהד', 'ליאם', 'ריטה', 'שרה'],
+  },
+  {
+    q: '"בקיצור יש לי אגו מטורף בדרך רעה"',
+    ans: 'אוהד',
+    opts: ['ליאם', 'אוהד', 'עינת', 'מירום'],
+  },
+  {
+    q: '"שוקו הכי טוב... שוקו קררר"',
+    ans: 'אוהד',
+    opts: ['שרה', 'ריטה', 'אוהד', 'אור'],
   },
   {
     q: '"אייס קפה טבעוני — חקירת פונקציות קל, טריגו לא"',
@@ -1983,7 +2102,7 @@ const triviaPool = [
     opts: ['עינת', 'שרה', 'מירום', 'אוהד'],
   },
   {
-    q: '"גזר, ויקטוריה סיקרט, ג׳ין ופילאטיס"',
+    q: '"אתה במחזור מאמילה?"',
     ans: 'עינת',
     opts: ['עינת', 'ריטה', 'שרה', 'אור'],
   },
