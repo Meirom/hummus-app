@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>חומוס על פסטה 🦐🦐</title>
-    <link rel="stylesheet" href="./styles.css?v=15" />
+    <link rel="stylesheet" href="./styles.css?v=16" />
   </head>
   <body>
     <canvas id="bg-canvas"></canvas>
@@ -54,7 +54,7 @@
     <header class="top-nav">
       <div class="brand">חומוס על פסטה 🦐</div>
       <div class="nav-right">
-        <button id="active-user-badge" class="user-pill" title="לחצי לעיצוב אווטר">לא מחוברת</button>
+        <button id="active-user-badge" class="user-pill" title="לחצי לעיצוב אווטר ופרופיל">לא מחוברת</button>
         <button id="blossom-toggle" class="icon-pill" title="מצב מלבלב">💖</button>
         <button id="psycho-toggle" class="icon-pill" title="מצב לילה">🌙</button>
         <button id="logout-btn" class="icon-pill" title="התנתקות">🚪</button>
@@ -69,13 +69,16 @@
       <button class="tab-btn" data-tab="games">🎮 משחקים</button>
       <button class="tab-btn" data-tab="secrets">🤫 מי זה?</button>
       <button class="tab-btn" data-tab="chat">💬 יציאות</button>
-      <button class="tab-btn" data-tab="avatar">🎨 אווטר</button>
+      <button class="tab-btn" data-tab="avatar">🎨 פרופיל</button>
       <button class="tab-btn" data-tab="club">🏆 שיאים</button>
       <button class="tab-btn" data-tab="requests">💡 בקשות</button>
     </nav>
 
     <!-- מסך 1: לובי -->
     <main id="tab-lobby" class="page-view active">
+      <!-- באנר ספירה לאחור לימי הולדת (מוסתר לבעל השמחה עצמו!) -->
+      <section id="bday-banner" class="panel-card bday-banner hidden" style="margin-bottom: 16px;"></section>
+
       <section class="lobby-top-grid">
         <div class="panel-card welcome-card">
           <div class="welcome-head">
@@ -198,12 +201,12 @@
       </section>
     </main>
 
-    <!-- מסך 6: אווטר -->
+    <!-- מסך 6: פרופיל ואווטר -->
     <main id="tab-avatar" class="page-view">
       <section class="panel-card">
         <div class="panel-head">
-          <h2>עיצוב האווטר שלי 🎨</h2>
-          <span>הדמות שתופיע ליד השם שלך בכל האתר</span>
+          <h2>הפרופיל והאווטר שלי 🎨🎂</h2>
+          <span>הדמות + יום ההולדת שלך (מזכיר לכולם שבוע מראש בסוד!)</span>
         </div>
 
         <div class="avatar-studio">
@@ -212,7 +215,7 @@
               <span class="av-base">🦐</span>
               <span class="av-acc">👑</span>
             </div>
-            <button id="save-avatar-btn" class="solid-pill ping-btn">שמרי אווטר ✨</button>
+            <button id="save-avatar-btn" class="solid-pill ping-btn">שמרי פרופיל ✨</button>
             <div id="avatar-saved-msg" class="feedback-line" style="margin-top:6px;"></div>
           </div>
 
@@ -228,6 +231,13 @@
             <div class="av-group">
               <label>3. אקססורי:</label>
               <div id="av-accs" class="av-picker-row"></div>
+            </div>
+            <div class="av-group" style="margin-top: 6px;">
+              <label>4. תאריך יום הולדת 🎂:</label>
+              <div class="av-picker-row">
+                <select id="bday-day" class="q-select" style="max-width: 110px;"></select>
+                <select id="bday-month" class="q-select" style="max-width: 150px;"></select>
+              </div>
             </div>
           </div>
         </div>
@@ -260,6 +270,6 @@
       </section>
     </main>
 
-    <script type="module" src="./script.js?v=18"></script>
+    <script type="module" src="./script.js?v=20"></script>
   </body>
 </html>
