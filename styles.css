@@ -838,5 +838,132 @@ body.psycho .top-nav {
   .lobby-top-grid,
   .avatar-studio {
     grid-template-columns: 1fr;
+    /* רביעיות החבורה */
+.q-banner {
+  background: var(--surface-soft);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.q-log {
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
+
+.q-players-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.q-player-box {
+  background: var(--surface-soft);
+  border: var(--border);
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+}
+
+.q-player-box.active-turn {
+  border: 2px solid var(--teal);
+  background: var(--surface);
+}
+
+.q-ask-panel {
+  background: var(--surface-soft);
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.q-ask-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.q-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'Heebo', sans-serif;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.q-hand-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.q-set-card {
+  background: var(--surface-soft);
+  border: var(--border);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.q-set-title {
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.q-card-item {
+  background: var(--surface);
+  border-radius: 9px;
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.q-card-item.missing {
+  opacity: 0.45;
+  border: 1px dashed var(--muted);
+  background: transparent;
+}
+
+.q-books-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.q-book-badge {
+  background: var(--teal);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
   }
 }
