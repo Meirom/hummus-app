@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>חומוס על פסטה 🦐🦐</title>
-    <link rel="stylesheet" href="./styles.css?v=11" />
+    <link rel="stylesheet" href="./styles.css?v=12" />
   </head>
   <body>
     <canvas id="bg-canvas"></canvas>
@@ -64,6 +64,7 @@
     <!-- תפריט ניווט ראשי: לכל דבר כפתור משלו -->
     <nav class="main-tabs">
       <button class="tab-btn active" data-tab="lobby">🏠 לובי</button>
+      <button class="tab-btn" data-tab="class">🥱 משעמם בשיעור</button>
       <button class="tab-btn" data-tab="duel">⚔️ דו-קרב</button>
       <button class="tab-btn" data-tab="games">🎮 משחקים</button>
       <button class="tab-btn" data-tab="secrets">🤫 מי זה?</button>
@@ -107,6 +108,34 @@
           <span>מי אונליין עכשיו ומתי נראתה לאחרונה</span>
         </div>
         <div id="online-list" class="online-list">טוען סטטוס חבורה...</div>
+      </section>
+    </main>
+
+    <!-- מסך חדש: משעמם בשיעור -->
+    <main id="tab-class" class="page-view">
+      <section class="panel-card" style="margin-bottom: 16px;">
+        <div class="panel-head">
+          <h2>טורניר איקס-עיגול לייב 🏆❌⭕</h2>
+          <span>כולן משחקות במקביל — כל מנצחת עולה לשלב הבא עד שיש אלופת שיעור!</span>
+        </div>
+        <div id="ttt-tournament-root">טוען זירת טורניר...</div>
+      </section>
+
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>עוד משחקי שיעור חופר 🥱</h2>
+          <span>הקטגוריה שלכן — תגידו איזה משחק להוסיף לפה הבא!</span>
+        </div>
+        <div class="coming-soon-grid">
+          <div class="soon-card">
+            <strong>✍️ סיפור בהמשכים</strong>
+            <small>כל אחת מוסיפה מילה אחת בתורה בלי שהמורה תשים לב</small>
+          </div>
+          <div class="soon-card">
+            <strong>🎲 קונה או לא קונה לייב</strong>
+            <small>הצבעה מהירה של כל הכיתה ברגע</small>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -240,6 +269,6 @@
       </section>
     </main>
 
-    <script type="module" src="./script.js?v=12"></script>
+    <script type="module" src="./script.js?v=13"></script>
   </body>
 </html>
