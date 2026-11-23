@@ -705,6 +705,7 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
   const email = authEmail.value.trim();
   const pass = authPass.value.trim();
   const name = authName.value.trim() || email.split('@')[0];
+  authError.style.color = '';
   authError.textContent = '';
 
   if (!email || pass.length < 6) {
@@ -715,39 +716,55 @@ document.getElementById('auth-submit').addEventListener('click', async () => {
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (loginErr) {
-    if (loginErr.code === 'auth/user-not-found') {
+    if (
+      loginErr.code === 'auth/user-not-found' ||
+      loginErr.code === 'auth/invalid-credential'
+    ) {
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(cred.user, { displayName: name });
-        try {
-          await set(ref(db, `users/${cred.user.uid}`), {
-            uid: cred.user.uid,
-            name,
-            email,
-            score: 0,
-            streak: 1,
-            lastStreakDay: getDayKey(0),
-            lastSeen: Date.now(),
-            avatar: { ...DEFAULT_AVATAR },
-          });
-        } catch (dbErr) {
-          console.error(dbErr);
-        }
+        await set(ref(db, `users/${cred.user.uid}`), {
+          uid: cred.user.uid,
+          name,
+          email,
+          score: 0,
+          streak: 1,
+          lastStreakDay: getDayKey(0),
+          lastSeen: Date.now(),
+          avatar: { ...DEFAULT_AVATAR },
+        });
       } catch (e2) {
         authError.textContent =
           e2.code === 'auth/email-already-in-use'
-            ? 'המייל כבר רשום — בדקי שהסיסמה נכונה ✨'
+            ? 'המייל כבר רשום — בדקי סיסמה או לחצי "שכחתי סיסמה 🔑" 😉'
             : 'שגיאה בהרשמה: ' + e2.message;
       }
-    } else if (
-      loginErr.code === 'auth/invalid-credential' ||
-      loginErr.code === 'auth/wrong-password'
-    ) {
+    } else if (loginErr.code === 'auth/wrong-password') {
       authError.textContent =
-        'המייל קיים או שהפרטים לא תואמים — בדקי סיסמה בלי לפתוח חשבון חדש 😉';
+        'סיסמה לא נכונה — נסי שוב או לחצי "שכחתי סיסמה 🔑" 😉';
     } else {
       authError.textContent = 'שגיאה בהתחברות: ' + loginErr.message;
     }
+  }
+});
+
+document.getElementById('auth-reset')?.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  authError.textContent = '';
+
+  if (!email) {
+    authError.style.color = '#e11d48';
+    authError.textContent = 'קודם תכתבי את המייל בשדה של המייל ואז תלחצי שכחתי סיסמה 😉';
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    authError.style.color = '#16a34a';
+    authError.textContent = 'נשלח לך מייל לאיפוס סיסמה! בדקי גם בספאם 📩✨';
+  } catch {
+    authError.style.color = '#e11d48';
+    authError.textContent = 'לא הצלחתי לשלוח מייל — ודאי שהמייל נכון.';
   }
 });
 
