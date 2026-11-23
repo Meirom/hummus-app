@@ -422,6 +422,235 @@ function checkUpcomingBirthdays() {
     .join('');
 }
 
+// ==========================================
+// יומן החבורה: ימי הולדת + מבחנים וחומר + בחנים
+// ==========================================
+let cachedCalendarEvents = {};
+let calViewYear = new Date().getFullYear();
+let calViewMonth = new Date().getMonth(); // 0-11
+
+const CAL_MONTH_NAMES = [
+  'ינואר',
+  'פברואר',
+  'מרץ',
+  'אפריל',
+  'מאי',
+  'יוני',
+  'יולי',
+  'אוגוסט',
+  'ספטמבר',
+  'אוקטובר',
+  'נובמבר',
+  'דצמבר',
+];
+
+function renderCalendar() {
+  const gridEl = document.getElementById('cal-grid');
+  const labelEl = document.getElementById('cal-month-label');
+  const upcomingEl = document.getElementById('cal-upcoming-list');
+  if (!gridEl || !labelEl || !upcomingEl) return;
+
+  labelEl.textContent = `${CAL_MONTH_NAMES[calViewMonth]} ${calViewYear}`;
+
+  const weekdays = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+  const firstDayOfWeek = new Date(calViewYear, calViewMonth, 1).getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+  const todayStr = getDayKey(0);
+
+  // איסוף ימי הולדת של חברי החבורה
+  const bdaysList = Object.entries(cachedAllUsers)
+    .filter(([, u]) => u && u.name && u.birthday && u.birthday.day && u.birthday.month)
+    .map(([uid, u]) => ({
+      uid,
+      name: u.name,
+      day: Number(u.birthday.day),
+      month: Number(u.birthday.month),
+    }));
+
+  const eventsArr = Object.entries(cachedCalendarEvents || {}).map(([id, ev]) => ({
+    id,
+    ...ev,
+  }));
+
+  let cellsHtml = weekdays.map((d) => `<div class="cal-weekday">${d}</div>`).join('');
+
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    cellsHtml += `<div class="cal-day-cell empty"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = `${calViewYear}-${String(calViewMonth + 1).padStart(2, '0')}-${String(
+      day
+    ).padStart(2, '0')}`;
+    const isToday = dateKey === todayStr;
+
+    const dayBdays = bdaysList.filter(
+      (b) => b.month === calViewMonth + 1 && b.day === day
+    );
+    const dayEvents = eventsArr.filter((ev) => ev.date === dateKey);
+
+    const chipsHtml = [
+      ...dayBdays.map((b) => `<div class="cal-chip bday">🎂 ${b.name}</div>`),
+      ...dayEvents.map((ev) => {
+        const icon = ev.type === 'quiz' ? '📝' : '📚';
+        return `<div class="cal-chip ${ev.type || 'exam'}">${icon} ${ev.title}</div>`;
+      }),
+    ].join('');
+
+    cellsHtml += `
+      <div class="cal-day-cell ${isToday ? 'today' : ''}">
+        <span class="cal-day-num">${day}</span>
+        ${chipsHtml}
+      </div>`;
+  }
+
+  gridEl.innerHTML = cellsHtml;
+
+  // רשימת אירועים קרובים + חומר למבחן/בוחן + ימי הולדת קרובים
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const combinedUpcoming = [];
+
+  bdaysList.forEach((b) => {
+    const daysLeft = getDaysUntilBirthday({ day: b.day, month: b.month });
+    if (daysLeft !== null && daysLeft <= 30) {
+      let nextYear = now.getFullYear();
+      const candidate = new Date(nextYear, b.month - 1, b.day);
+      if (candidate < todayStart) nextYear++;
+      const sortTs = new Date(nextYear, b.month - 1, b.day).getTime();
+      combinedUpcoming.push({
+        kind: 'bday',
+        sortTs,
+        dateDisplay: `${b.day}.${b.month}`,
+        daysLeft,
+        title: `🎂 יום הולדת ל-${b.name}`,
+        material: '',
+        by: '',
+        id: null,
+      });
+    }
+  });
+
+  eventsArr.forEach((ev) => {
+    if (!ev.date) return;
+    const [yy, mm, dd] = ev.date.split('-').map(Number);
+    const evDate = new Date(yy, mm - 1, dd);
+    const diffDays = Math.round((evDate - todayStart) / 86400000);
+    if (diffDays < -1) return;
+    combinedUpcoming.push({
+      kind: ev.type || 'exam',
+      sortTs: evDate.getTime(),
+      dateDisplay: `${dd}.${mm}`,
+      daysLeft: diffDays,
+      title: `${ev.type === 'quiz' ? '📝 בוחן' : '📚 מבחן'}: ${ev.title}`,
+      material: ev.material || '',
+      by: ev.by || '',
+      id: ev.id,
+    });
+  });
+
+  combinedUpcoming.sort((a, b) => a.sortTs - b.sortTs);
+
+  if (combinedUpcoming.length === 0) {
+    upcomingEl.innerHTML = '<p>אין עדיין מבחנים, בחנים או ימי הולדת קרובים — הוסיפי למעלה! ✨</p>';
+    return;
+  }
+
+  upcomingEl.innerHTML = combinedUpcoming
+    .map((item) => {
+      const whenLabel =
+        item.daysLeft === 0
+          ? 'היום!'
+          : item.daysLeft === 1
+          ? 'מחר'
+          : item.daysLeft < 0
+          ? 'אתמול'
+          : `בעוד ${item.daysLeft} ימים`;
+
+      return `
+        <div class="cal-event-card">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span class="cal-badge ${item.kind}">${item.dateDisplay} · ${whenLabel}</span>
+              <strong>${item.title}</strong>
+            </div>
+            ${
+              item.material
+                ? `<p style="margin:6px 0 0; font-size:0.88rem;">📖 <b>חומר:</b> ${item.material}</p>`
+                : ''
+            }
+            ${
+              item.by
+                ? `<small style="color:var(--muted);">נוסף ע״י ${item.by}</small>`
+                : ''
+            }
+          </div>
+          ${
+            item.id
+              ? `<button class="mini-btn del-cal-ev" data-id="${item.id}" title="מחקי">🗑️</button>`
+              : ''
+          }
+        </div>`;
+    })
+    .join('');
+
+  upcomingEl.querySelectorAll('.del-cal-ev').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      await remove(ref(db, `calendarEvents/${btn.dataset.id}`));
+    });
+  });
+}
+
+document.getElementById('cal-prev-month')?.addEventListener('click', () => {
+  calViewMonth--;
+  if (calViewMonth < 0) {
+    calViewMonth = 11;
+    calViewYear--;
+  }
+  renderCalendar();
+});
+
+document.getElementById('cal-next-month')?.addEventListener('click', () => {
+  calViewMonth++;
+  if (calViewMonth > 11) {
+    calViewMonth = 0;
+    calViewYear++;
+  }
+  renderCalendar();
+});
+
+document.getElementById('cal-add-btn')?.addEventListener('click', async () => {
+  if (!me) return;
+  const type = document.getElementById('cal-type')?.value || 'exam';
+  const date = document.getElementById('cal-date')?.value;
+  const title = document.getElementById('cal-title')?.value.trim();
+  const material = document.getElementById('cal-material')?.value.trim() || '';
+
+  if (!date || !title) {
+    showLiveAlert('חסר פרט 👀', 'בחרי תאריך וכתבי את שם המקצוע למבחן או לבוחן!');
+    return;
+  }
+
+  await push(ref(db, 'calendarEvents'), {
+    type,
+    date,
+    title,
+    material,
+    by: me.name,
+    ts: Date.now(),
+  });
+
+  const [yy, mm] = date.split('-').map(Number);
+  calViewYear = yy;
+  calViewMonth = mm - 1;
+
+  document.getElementById('cal-title').value = '';
+  document.getElementById('cal-material').value = '';
+  addSavedPoints(2);
+  showLiveAlert('📅 נוסף ליומן!', `${type === 'quiz' ? 'בוחן' : 'מבחן'} ב-${title} נשמר לכולן ✨`);
+});
+
 // התחברות
 const authModal = document.getElementById('auth-modal');
 const authName = document.getElementById('auth-name');
@@ -462,7 +691,7 @@ document.getElementById('save-avatar-btn')?.addEventListener('click', async () =
     const msg = document.getElementById('avatar-saved-msg');
     if (msg) {
       msg.textContent = birthday
-        ? `הפרופיל ויום ההולדת (${bDay}.${bMonth}) נשמרו! 🎂✨`
+        ? `הפרופיל ויום ההולדת (${bDay}.${bMonth}) נשמרו ומופיעים ביומן! 🎂✨`
         : 'האווטר נשמר ומוצג לכולן! ✨';
       setTimeout(() => (msg.textContent = ''), 3500);
     }
@@ -1612,6 +1841,11 @@ onAuthStateChanged(auth, async (user) => {
     console.error(err);
   }
 
+  onValue(ref(db, 'calendarEvents'), (snap) => {
+    cachedCalendarEvents = snap.val() || {};
+    renderCalendar();
+  });
+
   onValue(ref(db, 'quartetsGame'), (snap) => {
     cachedQuartets = snap.val();
     renderQuartets();
@@ -1679,6 +1913,7 @@ onAuthStateChanged(auth, async (user) => {
     cachedAllUsers = snap.val() || {};
     renderPresenceList();
     checkUpcomingBirthdays();
+    renderCalendar();
 
     const all = Object.values(cachedAllUsers)
       .filter((u) => u && u.name && u.name.trim())
