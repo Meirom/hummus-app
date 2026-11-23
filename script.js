@@ -423,6 +423,58 @@ function checkUpcomingBirthdays() {
     .join('');
 }
 
+function getDaysUntilDateStr(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  const [yy, mm, dd] = parts;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(yy, mm - 1, dd);
+  return Math.round((target - todayStart) / 86400000);
+}
+
+function checkUpcomingExamsAndQuizzes() {
+  if (!me || !cachedCalendarEvents) return;
+
+  const todayKey = getDayKey(0);
+
+  Object.entries(cachedCalendarEvents).forEach(([evId, ev]) => {
+    if (!ev || !ev.date || !ev.title) return;
+    if (ev.type && ev.type !== 'exam' && ev.type !== 'quiz') return;
+
+    const daysLeft = getDaysUntilDateStr(ev.date);
+    if (daysLeft === null || daysLeft < 0 || daysLeft > 7) return;
+
+    // מתזכר בדיוק שבוע לפני (7 ימים) וגם ביומיים האחרונים / יום לפני / היום עצמו
+    const shouldNotify = daysLeft === 7 || daysLeft <= 2;
+    if (!shouldNotify) return;
+
+    const sentKey = `exam_tg_${todayKey}_${evId}_${me.uid}`;
+    if (localStorage.getItem(sentKey)) return;
+    localStorage.setItem(sentKey, '1');
+
+    const kindLabel = ev.type === 'quiz' ? 'בוחן' : 'מבחן';
+    const icon = ev.type === 'quiz' ? '📝' : '📚';
+    const whenText =
+      daysLeft === 0
+        ? 'היום!'
+        : daysLeft === 1
+        ? 'מחר!'
+        : daysLeft === 7
+        ? 'בעוד שבוע בדיוק!'
+        : `בעוד ${daysLeft} ימים!`;
+
+    const materialPart = ev.material ? ` · חומר: ${ev.material}` : '';
+
+    triggerPushServer({
+      targetUid: me.uid,
+      title: `${icon} תזכורת ${kindLabel} (${whenText})`,
+      body: `${kindLabel} ב${ev.title} (${whenText})${materialPart} 📖🔥`,
+    });
+  });
+}
+
 // ==========================================
 // יומן החבורה: ימי הולדת + מבחנים וחומר + בחנים
 // ==========================================
@@ -506,6 +558,7 @@ function renderCalendar() {
   }
 
   gridEl.innerHTML = cellsHtml;
+  checkUpcomingExamsAndQuizzes();
 
   // רשימת אירועים קרובים + חומר למבחן/בוחן + ימי הולדת קרובים
   const now = new Date();
@@ -1862,6 +1915,7 @@ onAuthStateChanged(auth, async (user) => {
   onValue(ref(db, 'calendarEvents'), (snap) => {
     cachedCalendarEvents = snap.val() || {};
     renderCalendar();
+    checkUpcomingExamsAndQuizzes();
   });
 
   onValue(ref(db, 'quartetsGame'), (snap) => {
