@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>חומוס על פסטה 🦐🦐</title>
-    <link rel="stylesheet" href="./styles.css?v=16" />
+    <link rel="stylesheet" href="./styles.css?v=17" />
   </head>
   <body>
     <canvas id="bg-canvas"></canvas>
@@ -64,6 +64,7 @@
     <!-- תפריט ניווט ראשי -->
     <nav class="main-tabs">
       <button class="tab-btn active" data-tab="lobby">🏠 לובי</button>
+      <button class="tab-btn" data-tab="calendar">📅 יומן</button>
       <button class="tab-btn" data-tab="class">🥱 משעמם בשיעור</button>
       <button class="tab-btn" data-tab="duel">⚔️ דו-קרב</button>
       <button class="tab-btn" data-tab="games">🎮 משחקים</button>
@@ -76,7 +77,6 @@
 
     <!-- מסך 1: לובי -->
     <main id="tab-lobby" class="page-view active">
-      <!-- באנר ספירה לאחור לימי הולדת (מוסתר לבעל השמחה עצמו!) -->
       <section id="bday-banner" class="panel-card bday-banner hidden" style="margin-bottom: 16px;"></section>
 
       <section class="lobby-top-grid">
@@ -111,6 +111,53 @@
           <span>מי אונליין עכשיו ומתי נראתה לאחרונה</span>
         </div>
         <div id="online-list" class="online-list">טוען סטטוס חבורה...</div>
+      </section>
+    </main>
+
+    <!-- מסך חדש: יומן חבורה (ימי הולדת + מבחנים + בחנים + חומר) -->
+    <main id="tab-calendar" class="page-view">
+      <section class="panel-card" style="margin-bottom: 16px;">
+        <div class="panel-head">
+          <h2>יומן החבורה 📅🎂📚</h2>
+          <span>ימי הולדת (מהפרופיל) + מבחנים וחומר + בחנים</span>
+        </div>
+
+        <div class="cal-add-box">
+          <div class="cal-add-row">
+            <select id="cal-type" class="q-select">
+              <option value="exam">📚 מבחן</option>
+              <option value="quiz">📝 בוחן</option>
+            </select>
+            <input id="cal-date" type="date" class="q-select" />
+            <input id="cal-title" type="text" maxlength="60" placeholder="מקצוע (מתמטיקה / היסטוריה / פרסית...)" />
+          </div>
+          <div class="cal-add-row" style="margin-top: 8px;">
+            <input id="cal-material" type="text" maxlength="220" placeholder="חומר למבחן / לבוחן (עמודים, נושאים, סיכומים...)" />
+            <button id="cal-add-btn" class="solid-pill ping-btn">הוסיפי ליומן ➕</button>
+          </div>
+        </div>
+
+        <div class="cal-nav-bar">
+          <button id="cal-prev-month" class="glass-pill" style="margin-top:0">◀ חודש קודם</button>
+          <strong id="cal-month-label" style="font-size: 1.1rem;"></strong>
+          <button id="cal-next-month" class="glass-pill" style="margin-top:0">חודש הבא ▶</button>
+        </div>
+
+        <div class="cal-legend">
+          <span class="cal-badge bday">🎂 יום הולדת</span>
+          <span class="cal-badge exam">📚 מבחן</span>
+          <span class="cal-badge quiz">📝 בוחן</span>
+        </div>
+
+        <div id="cal-grid" class="cal-grid"></div>
+      </section>
+
+      <section class="panel-card">
+        <div class="panel-head">
+          <h2>האירועים הקרובים וחומר למבחנים 📋</h2>
+          <span>כל מה שמחכה לנו בזמן הקרוב</span>
+        </div>
+        <div id="cal-upcoming-list" class="secrets-list">טוען אירועים...</div>
       </section>
     </main>
 
@@ -206,7 +253,7 @@
       <section class="panel-card">
         <div class="panel-head">
           <h2>הפרופיל והאווטר שלי 🎨🎂</h2>
-          <span>הדמות + יום ההולדת שלך (מזכיר לכולם שבוע מראש בסוד!)</span>
+          <span>הדמות + יום ההולדת שלך (מופיע אוטומטית ביומן ומזכיר שבוע מראש!)</span>
         </div>
 
         <div class="avatar-studio">
@@ -270,6 +317,6 @@
       </section>
     </main>
 
-    <script type="module" src="./script.js?v=20"></script>
+    <script type="module" src="./script.js?v=21"></script>
   </body>
 </html>
