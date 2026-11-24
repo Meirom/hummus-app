@@ -51,6 +51,14 @@ try {
   messaging = getMessaging(app);
 } catch {}
 
+// ניקוי מפתחות תזכורת ישנים פעם אחת אחרי עדכון הלוגיקה לכולם
+if (!localStorage.getItem('exam_tg_broadcast_migrated_v1')) {
+  Object.keys(localStorage)
+    .filter((k) => k.startsWith('exam_tg_'))
+    .forEach((k) => localStorage.removeItem(k));
+  localStorage.setItem('exam_tg_broadcast_migrated_v1', '1');
+}
+
 // אפשרויות עיצוב אווטר
 const AVATAR_BASES = ['🦐', '🐱', '🐸', '🧸', '🐰', '🦊', '👽', '🤖', '🦄', '🐵'];
 const AVATAR_COLORS = [
@@ -435,9 +443,13 @@ function getDaysUntilDateStr(dateStr) {
 }
 
 function checkUpcomingExamsAndQuizzes() {
-  if (!me || !cachedCalendarEvents) return;
+  if (!me || !cachedCalendarEvents || !cachedAllUsers) return;
 
   const todayKey = getDayKey(0);
+  const recipients = Object.entries(cachedAllUsers).filter(
+    ([, u]) => u && u.telegramChatId
+  );
+  if (recipients.length === 0) return;
 
   Object.entries(cachedCalendarEvents).forEach(([evId, ev]) => {
     if (!ev || !ev.date || !ev.title) return;
@@ -449,10 +461,6 @@ function checkUpcomingExamsAndQuizzes() {
     // מתזכר בדיוק שבוע לפני (7 ימים) וגם ביומיים האחרונים / יום לפני / היום עצמו
     const shouldNotify = daysLeft === 7 || daysLeft <= 2;
     if (!shouldNotify) return;
-
-    const sentKey = `exam_tg_${todayKey}_${evId}_${me.uid}`;
-    if (localStorage.getItem(sentKey)) return;
-    localStorage.setItem(sentKey, '1');
 
     const kindLabel = ev.type === 'quiz' ? 'בוחן' : 'מבחן';
     const icon = ev.type === 'quiz' ? '📝' : '📚';
@@ -466,11 +474,19 @@ function checkUpcomingExamsAndQuizzes() {
         : `בעוד ${daysLeft} ימים!`;
 
     const materialPart = ev.material ? ` · חומר: ${ev.material}` : '';
+    const title = `${icon} תזכורת ${kindLabel} (${whenText})`;
+    const body = `${kindLabel} ב${ev.title} (${whenText})${materialPart} 📖🔥`;
 
-    triggerPushServer({
-      targetUid: me.uid,
-      title: `${icon} תזכורת ${kindLabel} (${whenText})`,
-      body: `${kindLabel} ב${ev.title} (${whenText})${materialPart} 📖🔥`,
+    recipients.forEach(([uid]) => {
+      const sentKey = `exam_tg_${todayKey}_${evId}_${uid}`;
+      if (localStorage.getItem(sentKey)) return;
+      localStorage.setItem(sentKey, '1');
+
+      triggerPushServer({
+        targetUid: uid,
+        title,
+        body,
+      });
     });
   });
 }
