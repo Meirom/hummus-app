@@ -46,11 +46,14 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  direction: rtl;
+  text-align: right;
   font-family: 'Rubik', sans-serif;
   color: var(--ink);
   background: radial-gradient(circle at top right, var(--bg-2), var(--bg-1));
   transition: background 0.35s ease, color 0.25s ease;
   overflow-x: hidden;
+  max-width: 100%;
 }
 
 #bg-canvas {
@@ -75,6 +78,7 @@ body {
   background: var(--card);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
+  max-width: 100%;
 }
 
 .brand-wrap {
@@ -171,6 +175,7 @@ body {
   background: var(--card);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
+  max-width: 100%;
 }
 
 .tab-btn {
@@ -218,6 +223,7 @@ body {
   border-radius: 24px;
   padding: 20px;
   box-shadow: var(--shadow);
+  max-width: 100%;
 }
 
 .bday-banner {
@@ -894,7 +900,7 @@ body {
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
 }
 
 .cal-weekday {
@@ -907,14 +913,15 @@ body {
 
 .cal-day-cell {
   min-width: 0;
-  min-height: 78px;
-  border-radius: 14px;
+  min-height: 68px;
+  border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--card-solid);
-  padding: 6px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  overflow: hidden;
 }
 
 .cal-day-cell.empty {
@@ -929,17 +936,18 @@ body {
 
 .cal-day-num {
   font-weight: 900;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
 
 .cal-chip {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 8px;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  padding: 2px 5px;
+  border-radius: 7px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cal-chip.bday {
@@ -1159,28 +1167,33 @@ body {
 }
 
 @media (max-width: 640px) {
+  .card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
   .avatar-studio {
     grid-template-columns: 1fr;
     justify-items: center;
   }
 
   .cal-grid {
-    gap: 3px;
+    gap: 2px;
   }
 
   .cal-day-cell {
-    padding: 4px;
-    min-height: 62px;
-    border-radius: 10px;
+    padding: 3px;
+    min-height: 54px;
+    border-radius: 8px;
   }
 
   .cal-day-num {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
   }
 
   .cal-chip {
-    font-size: 0.63rem;
-    padding: 2px 4px;
-    border-radius: 6px;
+    font-size: 0.58rem;
+    padding: 1px 3px;
+    border-radius: 5px;
   }
 }
